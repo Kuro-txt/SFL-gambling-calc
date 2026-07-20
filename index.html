@@ -2,59 +2,82 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>SFL Price Calculator</title>
+  <title>SFL Item Calculator</title>
   <style>
-    body { font-family: sans-serif; max-width: 450px; margin: 40px auto; padding: 20px; border: 1px solid #ccc; border-radius: 8px; }
-    select, input { width: 100%; padding: 8px; margin-top: 5px; margin-bottom: 15px; box-sizing: border-box; }
-    .total-box { background: #eef9ff; padding: 10px; border-radius: 5px; text-align: center; }
-    .error-text { color: red; font-size: 14px; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      max-width: 480px;
+      margin: 40px auto;
+      padding: 24px;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      background-color: #ffffff;
+    }
+    h2 { color: #2d3748; margin-top: 0; text-align: center; }
+    label { font-weight: 600; color: #4a5568; display: block; margin-top: 15px; margin-bottom: 5px; }
+    select, input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #cbd5e0;
+      border-radius: 6px;
+      font-size: 16px;
+      box-sizing: border-box;
+    }
+    .total-box {
+      margin-top: 20px;
+      background: #f0fff4;
+      border: 1px solid #c6f6d5;
+      border-radius: 8px;
+      padding: 16px;
+      text-align: center;
+    }
+    .total-box h3 { margin: 0; color: #276749; font-size: 14px; text-transform: uppercase; }
+    .total-box h1 { margin: 5px 0 0 0; color: #22543d; font-size: 32px; }
+    .unit-price { text-align: center; color: #718096; font-size: 13px; margin-top: 8px; }
   </style>
 </head>
 <body>
 
-  <h2>SFL Item Calculator</h2>
+  <h2>🌻 SFL Item Calculator</h2>
 
   <label for="item-select">Choose Item:</label>
   <select id="item-select">
-    <option>Loading items...</option>
+    <option>Loading items from sfl.world...</option>
   </select>
 
   <label for="quantity">Quantity:</label>
-  <input type="number" id="quantity" value="1" min="1">
+  <input type="number" id="quantity" value="1" min="1" step="any">
 
   <div class="total-box">
     <h3>Total Value</h3>
-    <h2 id="total">0 SFL</h2>
+    <h1 id="total">0 SFL</h1>
+    <div id="unit-price" class="unit-price">Unit price: 0 SFL</div>
   </div>
 
-  <p id="status-msg" class="error-text"></p>
-
   <script>
-    let prices = {};
+    let itemPrices = {};
 
     fetch('/api/get-data')
-      .then(res => {
-        if (!res.ok) throw new Error('Server response was not OK');
-        return res.json();
-      })
-      .then(data => {
-        // If sfl.world wraps its items inside a nested object (like data.prices or data.data)
-        prices = data.prices || data.data || data;
+      .then(res => res.json())
+      .then(rawData => {
+        // Flatten nested objects (p2p, seq, ge, etc.) into a clean item list
+        itemPrices = extractPrices(rawData);
 
         const select = document.getElementById('item-select');
         select.innerHTML = '';
 
-        const keys = Object.keys(prices);
-        if (keys.length === 0) {
-          document.getElementById('status-msg').textContent = 'No item price data returned.';
+        const itemNames = Object.keys(itemPrices).sort();
+
+        if (itemNames.length === 0) {
+          select.innerHTML = '<option>No items found</option>';
           return;
         }
 
-        // Fill dropdown
-        keys.forEach(key => {
+        itemNames.forEach(item => {
           let opt = document.createElement('option');
-          opt.value = key;
-          opt.textContent = key;
+          opt.value = item;
+          opt.textContent = item;
           select.appendChild(opt);
         });
 
@@ -62,20 +85,46 @@
       })
       .catch(err => {
         console.error(err);
-        document.getElementById('status-msg').textContent = 'Error loading prices: ' + err.message;
+        document.getElementById('item-select').innerHTML = '<option>Error loading prices</option>';
       });
 
+    // Helper function to scan through nested API categories (p2p, seq, etc.)
+    function extractPrices(data) {
+      let pricesMap = {};
+
+      function searchObj(obj, categoryPrefix = '') {
+        for (let key in obj) {
+          let val = obj[key];
+          
+          if (typeof val === 'number') {
+            pricesMap[categoryPrefix + key] = val;
+          } else if (val && typeof val === 'object') {
+            if (val.price !== undefined) {
+              pricesMap[categoryPrefix + key] = parseFloat(val.price);
+            } else if (val.sfl !== undefined) {
+              pricesMap[categoryPrefix + key] = parseFloat(val.sfl);
+            } else {
+              // Drill deeper into nested market categories like p2p or seq
+              searchObj(val, key.length <= 4 ? `[${key.toUpperCase()}] ` : '');
+            }
+          }
+        }
+      }
+
+      searchObj(data);
+      return pricesMap;
+    }
+
     function calculate() {
-      let item = document.getElementById('item-select').value;
+      let selectedItem = document.getElementById('item-select').value;
       let qty = parseFloat(document.getElementById('quantity').value) || 0;
 
-      if (item && prices[item]) {
-        // Extract unit price regardless of how sfl.world formats individual items
-        let itemData = prices[item];
-        let unitPrice = typeof itemData === 'number' ? itemData : (itemData.sfl || itemData.price || itemData.sflPrice || 0);
-
+      if (selectedItem && itemPrices[selectedItem] !== undefined) {
+        let unitPrice = itemPrices[selectedItem];
         let grandTotal = (unitPrice * qty).toFixed(4);
+
         document.getElementById('total').textContent = `${grandTotal} SFL`;
+        document.getElementById('unit-price').textContent = `Unit price: ${unitPrice} SFL`;
       }
     }
 
