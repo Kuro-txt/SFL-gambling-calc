@@ -288,6 +288,20 @@
       return Math.ceil(num * 100) / 100;
     }
 
+    // Helper to get farm stock for any item key
+    function getItemStock(displayName) {
+      let cleanSelected = displayName.toLowerCase().replace(/[^a-z0-9]/g, '');
+      for (let invKey in farmInventoryData) {
+        let cleanInvKey = invKey.toLowerCase().replace(/[^a-z0-9]/g, '');
+        if (cleanInvKey === cleanSelected) {
+          let val = farmInventoryData[invKey];
+          let rawVal = typeof val === 'number' ? val : parseFloat(val.amount || val || 0);
+          return roundUpToTwoDecimals(rawVal);
+        }
+      }
+      return 0;
+    }
+
     document.getElementById('import-farm-btn').addEventListener('click', () => {
       const farmId = document.getElementById('farm-id').value.trim();
       const apiKey = document.getElementById('api-key').value.trim();
@@ -311,7 +325,7 @@
           let totalItemsCount = Object.keys(farmInventoryData).length;
 
           if (totalItemsCount > 0) {
-            status.textContent = `✅ Synced ${totalItemsCount} item types from Farm #${farmId}! Select any item to auto-fill stock quantity.`;
+            status.textContent = `✅ Synced ${totalItemsCount} item types from Farm #${farmId}! Stock amounts now visible in dropdown.`;
           } else {
             status.textContent = `⚠️ Connected, but no inventory found on farm.`;
           }
@@ -340,10 +354,21 @@
       } else {
         matches.forEach(item => {
           let displayName = item.replace(/^\[.*?\]\s*/, '');
+          let stock = getItemStock(displayName);
+
+          let stockBadge = stock > 0 
+            ? `<span class="text-[11px] font-bold text-sfl-green bg-green-100 border border-sfl-green/30 px-1.5 py-0.5 rounded ml-1.5">Qty: ${stock}</span>`
+            : `<span class="text-[11px] text-sfl-woodLight/60 ml-1.5">(0)</span>`;
 
           const li = document.createElement('li');
           li.className = 'p-2.5 hover:bg-amber-100 cursor-pointer transition flex justify-between items-center';
-          li.innerHTML = `<span class="font-bold text-sfl-dirt">${displayName}</span><span class="text-sfl-green font-mono text-xs">${allPrices[item]} Flowers</span>`;
+          li.innerHTML = `
+            <div class="flex items-center">
+              <span class="font-bold text-sfl-dirt">${displayName}</span>
+              ${stockBadge}
+            </div>
+            <span class="text-sfl-green font-mono text-xs font-bold">${allPrices[item]} Flowers</span>
+          `;
           li.addEventListener('click', () => selectItem(item, displayName));
           menu.appendChild(li);
         });
@@ -371,18 +396,7 @@
       document.getElementById('selected-item-name').textContent = cleanName;
       document.getElementById('selected-item-price').textContent = `${allPrices[itemKey]} Flowers`;
 
-      let cleanSelected = cleanName.toLowerCase().replace(/[^a-z0-9]/g, '');
-      let foundStock = 0;
-
-      for (let invKey in farmInventoryData) {
-        let cleanInvKey = invKey.toLowerCase().replace(/[^a-z0-9]/g, '');
-        if (cleanInvKey === cleanSelected) {
-          let val = farmInventoryData[invKey];
-          let rawVal = typeof val === 'number' ? val : parseFloat(val.amount || val || 0);
-          foundStock = roundUpToTwoDecimals(rawVal);
-          break;
-        }
-      }
+      let foundStock = getItemStock(cleanName);
 
       if (foundStock > 0) {
         document.getElementById('quantity').value = foundStock;
@@ -489,4 +503,5 @@
   </script>
 
 </body>
+</html>
 </html>
