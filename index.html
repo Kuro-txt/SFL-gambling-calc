@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SFL Buddy Market Calculator</title>
-  <!-- Google Font for a fun game look -->
+  <!-- Google Fonts for pixel & game aesthetic -->
   <link href="https://fonts.googleapis.com/css2?family=VT323&family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -34,7 +34,6 @@
   <style>
     body {
       background-color: #2e531c;
-      /* Subtle pixel grass pattern */
       background-image: radial-gradient(#3a6923 15%, transparent 16%), radial-gradient(#3a6923 15%, transparent 16%);
       background-size: 30px 30px;
       background-position: 0 0, 15px 15px;
@@ -62,75 +61,95 @@
 </head>
 <body class="font-game text-sfl-dirt min-h-screen p-4 sm:p-8 flex items-center justify-center">
 
-  <div class="w-full max-w-xl sfl-panel rounded-2xl p-6 sm:p-8 relative">
+  <div class="w-full max-w-5xl sfl-panel rounded-2xl p-6 sm:p-8 relative">
     
     <!-- Top Header Ribbon -->
-    <div class="text-center mb-6">
-      <div class="inline-block bg-sfl-wood text-amber-200 border-2 border-sfl-dirt px-6 py-1 rounded-full shadow-md">
-        <h1 class="text-2xl sm:text-3xl font-pixel tracking-wider font-bold text-amber-300 flex items-center gap-2 justify-center">
+    <div class="text-center mb-8">
+      <div class="inline-block bg-sfl-wood text-amber-200 border-2 border-sfl-dirt px-6 py-1.5 rounded-full shadow-md">
+        <h1 class="text-2xl sm:text-4xl font-pixel tracking-wider font-bold text-amber-300 flex items-center gap-2 justify-center">
           <span>🌻</span> SFL BUDDY CALCULATOR
         </h1>
       </div>
       <p class="text-xs font-semibold text-sfl-woodLight mt-2">Live item prices via sfl.world proxy</p>
     </div>
 
-    <!-- Inputs Section -->
-    <div class="space-y-4 bg-sfl-card/80 p-4 rounded-xl border-2 border-sfl-cardBorder">
+    <!-- Two Column Grid Layout -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
       
-      <!-- Search Input -->
-      <div>
-        <label class="block text-xs font-bold uppercase tracking-wider text-sfl-wood mb-1">🔍 Search Items</label>
-        <input type="text" id="search" placeholder="Type to filter (e.g., Gold, Sunflower)..." 
-          class="w-full sfl-input rounded-lg px-3 py-2 text-sm text-sfl-dirt focus:outline-none focus:ring-2 focus:ring-sfl-gold">
+      <!-- LEFT SIDE: Item Selection & Inputs -->
+      <div class="bg-sfl-card/80 p-5 rounded-xl border-2 border-sfl-cardBorder space-y-4">
+        <h2 class="text-lg font-bold text-sfl-wood border-b-2 border-sfl-cardBorder pb-2 flex items-center gap-2">
+          <span>📦</span> Select & Add Items
+        </h2>
+
+        <!-- Search Input -->
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider text-sfl-wood mb-1">🔍 Search Items</label>
+          <input type="text" id="search" placeholder="Type to filter (e.g., Gold, Sunflower)..." 
+            class="w-full sfl-input rounded-lg px-3 py-2 text-sm text-sfl-dirt focus:outline-none focus:ring-2 focus:ring-sfl-gold">
+        </div>
+
+        <!-- Item Select Dropdown -->
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider text-sfl-wood mb-1">Choice Item</label>
+          <select id="item-select" class="w-full sfl-input rounded-lg px-3 py-2 text-sm text-sfl-dirt focus:outline-none focus:ring-2 focus:ring-sfl-gold">
+            <option>Loading live prices...</option>
+          </select>
+        </div>
+
+        <!-- Quantity Input -->
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider text-sfl-wood mb-1">🔢 Quantity</label>
+          <input type="number" id="quantity" value="1" min="1" 
+            class="w-full sfl-input rounded-lg px-3 py-2 text-sm text-sfl-dirt focus:outline-none focus:ring-2 focus:ring-sfl-gold">
+        </div>
+
+        <!-- Add Button -->
+        <button id="add-btn" 
+          class="w-full sfl-btn text-white font-bold py-3 rounded-xl transition text-base tracking-wide flex items-center justify-center gap-2 mt-2">
+          <span>🧺</span> Add to Farm Basket
+        </button>
       </div>
 
-      <!-- Item Select Dropdown -->
-      <div>
-        <label class="block text-xs font-bold uppercase tracking-wider text-sfl-wood mb-1">📦 Select Item</label>
-        <select id="item-select" class="w-full sfl-input rounded-lg px-3 py-2 text-sm text-sfl-dirt focus:outline-none focus:ring-2 focus:ring-sfl-gold">
-          <option>Loading live prices...</option>
-        </select>
+      <!-- RIGHT SIDE: Basket & Total Calculator -->
+      <div class="flex flex-col h-full space-y-4">
+        
+        <!-- Basket Table Container -->
+        <div class="bg-white/70 border-2 border-sfl-cardBorder rounded-xl overflow-hidden flex-grow shadow-sm">
+          <div class="bg-sfl-wood text-amber-200 px-4 py-2 text-xs font-bold uppercase tracking-wider border-b-2 border-sfl-dirt flex justify-between items-center">
+            <span>🛒 Farm Basket</span>
+            <span id="item-count" class="text-amber-300 font-mono">0 Items</span>
+          </div>
+
+          <div class="max-h-[280px] overflow-y-auto">
+            <table class="w-full text-left text-sm text-sfl-dirt">
+              <thead class="text-xs uppercase bg-sfl-card border-b-2 border-sfl-cardBorder text-sfl-wood">
+                <tr>
+                  <th class="px-4 py-2">Item</th>
+                  <th class="px-4 py-2">Qty</th>
+                  <th class="px-4 py-2">Subtotal</th>
+                  <th class="px-4 py-2 text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody id="basket-body" class="divide-y divide-sfl-cardBorder/50 font-medium">
+                <tr>
+                  <td colspan="4" class="px-4 py-8 text-center text-sfl-woodLight italic">
+                    Your farm basket is empty!
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Total Display Banner -->
+        <div class="bg-sfl-gold/20 border-2 border-sfl-gold rounded-xl p-4 text-center shadow-inner">
+          <span class="text-xs font-bold uppercase tracking-widest text-sfl-wood">Total SFL Value</span>
+          <h2 id="total-sfl" class="text-3xl font-pixel font-bold text-sfl-wood mt-0.5">0.0000 SFL</h2>
+        </div>
+
       </div>
 
-      <!-- Quantity Input -->
-      <div>
-        <label class="block text-xs font-bold uppercase tracking-wider text-sfl-wood mb-1">🔢 Quantity</label>
-        <input type="number" id="quantity" value="1" min="1" 
-          class="w-full sfl-input rounded-lg px-3 py-2 text-sm text-sfl-dirt focus:outline-none focus:ring-2 focus:ring-sfl-gold">
-      </div>
-
-      <!-- Add Button -->
-      <button id="add-btn" 
-        class="w-full sfl-btn text-white font-bold py-2.5 rounded-xl transition text-base tracking-wide flex items-center justify-center gap-2">
-        <span>🧺</span> Add to Farm Basket
-      </button>
-    </div>
-
-    <!-- Basket Table -->
-    <div class="mt-6 bg-white/70 border-2 border-sfl-cardBorder rounded-xl overflow-hidden">
-      <table class="w-full text-left text-sm text-sfl-dirt">
-        <thead class="text-xs uppercase bg-sfl-wood text-amber-200 border-b-2 border-sfl-dirt">
-          <tr>
-            <th class="px-4 py-2.5">Item</th>
-            <th class="px-4 py-2.5">Qty</th>
-            <th class="px-4 py-2.5">Subtotal</th>
-            <th class="px-4 py-2.5 text-right">Action</th>
-          </tr>
-        </thead>
-        <tbody id="basket-body" class="divide-y divide-sfl-cardBorder/50 font-medium">
-          <tr>
-            <td colspan="4" class="px-4 py-6 text-center text-sfl-woodLight italic">
-              Your farm basket is empty!
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <!-- Total Display Banner -->
-    <div class="mt-6 bg-sfl-gold/20 border-2 border-sfl-gold rounded-xl p-4 text-center shadow-inner">
-      <span class="text-xs font-bold uppercase tracking-widest text-sfl-wood">Total SFL Value</span>
-      <h2 id="total-sfl" class="text-3xl font-pixel font-bold text-sfl-wood mt-0.5">0.0000 SFL</h2>
     </div>
 
   </div>
@@ -204,12 +223,14 @@
       tbody.innerHTML = '';
 
       let grandTotal = 0;
+      let totalQty = 0;
 
       if (basket.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="4" class="px-4 py-6 text-center text-sfl-woodLight italic">Your farm basket is empty!</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="4" class="px-4 py-8 text-center text-sfl-woodLight italic">Your farm basket is empty!</td></tr>';
       } else {
         basket.forEach((entry, index) => {
           grandTotal += entry.subtotal;
+          totalQty += entry.qty;
           let tr = document.createElement('tr');
           tr.className = "hover:bg-amber-50/50 transition";
           tr.innerHTML = `
@@ -225,6 +246,7 @@
       }
 
       document.getElementById('total-sfl').textContent = `${grandTotal.toFixed(4)} SFL`;
+      document.getElementById('item-count').textContent = `${basket.length} Item${basket.length === 1 ? '' : 's'}`;
     }
 
     function removeItem(index) {
