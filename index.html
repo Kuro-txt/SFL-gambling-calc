@@ -56,6 +56,11 @@
       transform: translateY(2px);
       box-shadow: 0px 2px 0px #311302;
     }
+    .sfl-icon {
+      image-rendering: pixelated;
+      display: inline-block;
+      vertical-align: middle;
+    }
   </style>
 </head>
 <body class="font-game text-sfl-dirt min-h-screen p-4 sm:p-8 flex items-center justify-center">
@@ -163,7 +168,7 @@
             <!-- Coin Ratio Option -->
             <div class="flex flex-col">
               <label class="text-xs font-bold text-sfl-wood uppercase mb-1 flex items-center gap-1">
-                <span>🪙</span> Coins per 1 Flower
+                <img src="https://raw.githubusercontent.com/sunflower-land/sunflower-land/main/src/assets/icons/coins.webp" class="w-4 h-4 sfl-icon"> Coins per 1 Flower
               </label>
               <input type="number" id="coin-ratio" value="1000" min="1" step="1" 
                 class="w-full sfl-input rounded-lg px-2.5 py-1 text-xs font-bold text-sfl-dirt focus:outline-none focus:ring-2 focus:ring-sfl-gold">
@@ -213,18 +218,27 @@
           </div>
           <hr class="border-sfl-cardBorder/40">
           
-          <div class="grid grid-cols-3 gap-1 pt-1 text-center">
+          <div class="grid grid-cols-3 gap-1 pt-1 text-center items-center">
             <div>
               <span class="text-[10px] font-bold uppercase tracking-wider text-sfl-wood block">Net Flowers</span>
-              <h2 id="total-flowers" class="text-xl sm:text-2xl font-pixel font-bold text-sfl-green mt-0.5">0.000 🌸</h2>
+              <h2 class="text-xl sm:text-2xl font-pixel font-bold text-sfl-green mt-0.5 flex items-center justify-center gap-1">
+                <span id="total-flowers">0.000</span>
+                <img src="https://raw.githubusercontent.com/sunflower-land/sunflower-land/main/src/assets/icons/sfl.png" class="w-5 h-5 sfl-icon">
+              </h2>
             </div>
             <div class="border-l border-sfl-cardBorder/40 px-1">
               <span class="text-[10px] font-bold uppercase tracking-wider text-sfl-wood block">Betty Coins</span>
-              <h2 id="total-betty-coins" class="text-xl sm:text-2xl font-pixel font-bold text-sfl-gold mt-0.5">0.00 🪙</h2>
+              <h2 class="text-xl sm:text-2xl font-pixel font-bold text-sfl-gold mt-0.5 flex items-center justify-center gap-1">
+                <span id="total-betty-coins">0.00</span>
+                <img src="https://raw.githubusercontent.com/sunflower-land/sunflower-land/main/src/assets/icons/coins.webp" class="w-5 h-5 sfl-icon">
+              </h2>
             </div>
             <div class="border-l border-sfl-cardBorder/40 pl-1">
               <span class="text-[10px] font-bold uppercase tracking-wider text-sfl-wood block">Ratio Coins (Net)</span>
-              <h2 id="total-ratio-coins" class="text-xl sm:text-2xl font-pixel font-bold text-amber-600 mt-0.5">0.00 🪙</h2>
+              <h2 class="text-xl sm:text-2xl font-pixel font-bold text-amber-600 mt-0.5 flex items-center justify-center gap-1">
+                <span id="total-ratio-coins">0.00</span>
+                <img src="https://raw.githubusercontent.com/sunflower-land/sunflower-land/main/src/assets/icons/coins.webp" class="w-5 h-5 sfl-icon">
+              </h2>
             </div>
           </div>
         </div>
@@ -280,6 +294,9 @@
     let basket = [];
     let selectedItemKey = null;
     let farmInventoryData = {};
+
+    const FLOWER_ICON = `<img src="https://raw.githubusercontent.com/sunflower-land/sunflower-land/main/src/assets/icons/sfl.png" class="w-3.5 h-3.5 sfl-icon">`;
+    const COIN_ICON = `<img src="https://raw.githubusercontent.com/sunflower-land/sunflower-land/main/src/assets/icons/coins.webp" class="w-3.5 h-3.5 sfl-icon">`;
 
     const APPROVED_CROPS_AND_FRUITS = [
       "sunflower", "potato", "pumpkin", "carrot", "cabbage", "beetroot", 
@@ -446,7 +463,7 @@
               <span class="font-bold text-sfl-dirt">${displayName}</span>
               ${stockBadge}
             </div>
-            <span class="text-sfl-green font-mono text-xs font-bold">${allPrices[item]} Flowers</span>
+            <span class="text-sfl-green font-mono text-xs font-bold flex items-center gap-1">${allPrices[item]} ${FLOWER_ICON}</span>
           `;
           li.addEventListener('click', () => selectItem(item, displayName));
           menu.appendChild(li);
@@ -473,7 +490,7 @@
 
       document.getElementById('selected-item-badge').classList.remove('hidden');
       document.getElementById('selected-item-name').textContent = cleanName;
-      document.getElementById('selected-item-price').textContent = `${allPrices[itemKey]} Flowers`;
+      document.getElementById('selected-item-price').innerHTML = `${allPrices[itemKey]} ${FLOWER_ICON}`;
 
       let foundStock = getItemStock(cleanName);
 
@@ -514,7 +531,6 @@
     document.getElementById('tax-select').addEventListener('change', updateBasketTable);
     document.getElementById('coin-ratio').addEventListener('input', updateBasketTable);
 
-    // Update item quantity directly from the basket input box
     function updateBasketQuantity(index, newQtyVal) {
       let rawQty = parseFloat(newQtyVal) || 0;
       let newQty = roundUpToOneDecimal(rawQty);
@@ -553,7 +569,7 @@
           if (bettyUnitPrice !== null) {
             let itemBettyCoins = entry.qty * bettyUnitPrice;
             totalBettyCoins += itemBettyCoins;
-            bettyCoinsDisplay = `${roundUpToTwoDecimals(itemBettyCoins).toFixed(2)} 🪙`;
+            bettyCoinsDisplay = `<span class="inline-flex items-center gap-1">${roundUpToTwoDecimals(itemBettyCoins).toFixed(2)} ${COIN_ICON}</span>`;
           }
 
           let itemNetFlowers = entry.subtotal * (1 - taxRate);
@@ -562,14 +578,14 @@
           totalGrossRatioCoins += (entry.subtotal * coinMultiplier);
 
           let ratioCoinsDisplay = entry.unitPrice > 0 
-            ? `${roundUpToTwoDecimals(itemNetRatioCoins).toFixed(2)} 🪙` 
+            ? `<span class="inline-flex items-center gap-1">${roundUpToTwoDecimals(itemNetRatioCoins).toFixed(2)} ${COIN_ICON}</span>` 
             : `<span class="text-sfl-woodLight/70 font-normal italic text-[10px]">-</span>`;
 
           let tr = document.createElement('tr');
           tr.className = "hover:bg-amber-50/50 transition";
           
           let subtotalDisplay = entry.unitPrice > 0 
-            ? `${roundUpToThreeDecimals(entry.subtotal).toFixed(3)} 🌸` 
+            ? `<span class="inline-flex items-center gap-1">${roundUpToThreeDecimals(entry.subtotal).toFixed(3)} ${FLOWER_ICON}</span>` 
             : `<span class="text-sfl-woodLight font-normal">Untradeable</span>`;
 
           tr.innerHTML = `
@@ -597,9 +613,9 @@
 
       document.getElementById('gross-flowers').textContent = `${roundUpToThreeDecimals(grandGrossTotal).toFixed(3)} Flowers`;
       document.getElementById('tax-deduction').textContent = `${roundUpToThreeDecimals(taxAmount).toFixed(3)} Flowers`;
-      document.getElementById('total-flowers').textContent = `${roundUpToThreeDecimals(netFlowers).toFixed(3)} 🌸`;
-      document.getElementById('total-betty-coins').textContent = `${roundUpToTwoDecimals(totalBettyCoins).toFixed(2)} 🪙`;
-      document.getElementById('total-ratio-coins').textContent = `${roundUpToTwoDecimals(totalNetRatioCoins).toFixed(2)} 🪙`;
+      document.getElementById('total-flowers').textContent = `${roundUpToThreeDecimals(netFlowers).toFixed(3)}`;
+      document.getElementById('total-betty-coins').textContent = `${roundUpToTwoDecimals(totalBettyCoins).toFixed(2)}`;
+      document.getElementById('total-ratio-coins').textContent = `${roundUpToTwoDecimals(totalNetRatioCoins).toFixed(2)}`;
       document.getElementById('item-count').textContent = `${basket.length} Item${basket.length === 1 ? '' : 's'}`;
     }
 
@@ -608,7 +624,7 @@
       updateBasketTable();
     }
 
-    // --- DAILY CROP SNAPSHOT & AUTO-PRUNE LOGIC ---
+    // --- DAILY CROP SNAPSHOT LOGIC ---
 
     function pruneOldSnapshots() {
       let history = JSON.parse(localStorage.getItem('sfl_daily_snapshots') || '[]');
@@ -657,12 +673,15 @@
       let history = JSON.parse(localStorage.getItem('sfl_daily_snapshots') || '[]');
       let existingIndex = history.findIndex(item => item.date === today);
 
+      const netFlowersVal = document.getElementById('total-flowers').textContent;
+      const ratioCoinsVal = document.getElementById('total-ratio-coins').textContent;
+
       const snapshotEntry = {
         date: today,
         totalCount: roundUpToOneDecimal(totalCropCount),
         crops: cropsData,
-        netFlowers: document.getElementById('total-flowers').textContent,
-        ratioCoins: document.getElementById('total-ratio-coins').textContent
+        netFlowers: netFlowersVal,
+        ratioCoins: ratioCoinsVal
       };
 
       if (existingIndex >= 0) {
@@ -695,13 +714,12 @@
               <span class="inline-flex items-center gap-1 bg-amber-100 text-amber-900 border border-amber-400 text-[11px] font-bold px-2 py-0.5 rounded shadow-sm mr-1 mb-1">
                 <span>${crop.name}:</span>
                 <span class="font-mono text-sfl-wood">${crop.qty.toFixed(1)}</span>
-                <span class="text-sfl-green font-normal">(${crop.flowers.toFixed(3)}🌸)</span>
-                <span class="text-amber-700 font-normal">(${crop.coins.toFixed(2)}🪙)</span>
+                <span class="text-sfl-green font-normal flex items-center gap-0.5">(${crop.flowers.toFixed(3)} ${FLOWER_ICON})</span>
+                <span class="text-amber-700 font-normal flex items-center gap-0.5">(${crop.coins.toFixed(2)} ${COIN_ICON})</span>
               </span>
             `)
             .join('');
         } else {
-          // Backward compatibility fallback for legacy simple key-value entries
           cropBadges = Object.entries(entry.crops)
             .map(([name, qty]) => `<span class="inline-block bg-amber-100 text-amber-900 border border-amber-400 text-[11px] font-bold px-1.5 py-0.5 rounded mr-1 mb-1">${name}: ${qty.toFixed(1)}</span>`)
             .join('');
@@ -714,7 +732,8 @@
           <td class="px-3 py-2.5 font-bold text-sfl-wood">${entry.totalCount.toFixed(1)} Crops</td>
           <td class="px-3 py-2.5">${cropBadges}</td>
           <td class="px-3 py-2.5 font-bold">
-            <span class="text-sfl-green">${entry.netFlowers}</span> | <span class="text-amber-600">${entry.ratioCoins}</span>
+            <span class="inline-flex items-center gap-1 text-sfl-green">${entry.netFlowers} ${FLOWER_ICON}</span> | 
+            <span class="inline-flex items-center gap-1 text-amber-600">${entry.ratioCoins} ${COIN_ICON}</span>
           </td>
         `;
         tbody.appendChild(tr);
