@@ -187,7 +187,7 @@
               <thead class="text-[11px] uppercase bg-sfl-card border-b-2 border-sfl-cardBorder text-sfl-wood">
                 <tr>
                   <th class="px-2 py-2">Item</th>
-                  <th class="px-1 py-2">Qty</th>
+                  <th class="px-1 py-2 w-20">Qty</th>
                   <th class="px-2 py-2">Flowers</th>
                   <th class="px-2 py-2">Betty Coins</th>
                   <th class="px-2 py-2">Ratio Coins</th>
@@ -281,7 +281,6 @@
     let selectedItemKey = null;
     let farmInventoryData = {};
 
-    // Approved Crops, Fruits, and Greenhouse items list:
     const APPROVED_CROPS_AND_FRUITS = [
       "sunflower", "potato", "pumpkin", "carrot", "cabbage", "beetroot", 
       "cauliflower", "parsnip", "radish", "wheat", "kale", "eggplant", 
@@ -296,7 +295,6 @@
       return APPROVED_CROPS_AND_FRUITS.includes(clean);
     }
 
-    // Exact Betty Shop coin prices
     const BETTY_SHOP_PRICES = {
       "sunflower": 0.02, "potato": 0.14, "rhubarb": 0.24, "pumpkin": 0.4,
       "zucchini": 0.4, "carrot": 0.8, "yam": 0.8, "cabbage": 1.5,
@@ -516,6 +514,21 @@
     document.getElementById('tax-select').addEventListener('change', updateBasketTable);
     document.getElementById('coin-ratio').addEventListener('input', updateBasketTable);
 
+    // Update item quantity directly from the basket input box
+    function updateBasketQuantity(index, newQtyVal) {
+      let rawQty = parseFloat(newQtyVal) || 0;
+      let newQty = roundUpToOneDecimal(rawQty);
+
+      if (newQty <= 0) {
+        removeItem(index);
+        return;
+      }
+
+      basket[index].qty = newQty;
+      basket[index].subtotal = basket[index].unitPrice * newQty;
+      updateBasketTable();
+    }
+
     function updateBasketTable() {
       const tbody = document.getElementById('basket-body');
       tbody.innerHTML = '';
@@ -561,7 +574,11 @@
 
           tr.innerHTML = `
             <td class="px-2 py-2.5 font-bold text-sfl-dirt">${cleanName}</td>
-            <td class="px-1 py-2.5 font-mono">${entry.qty.toFixed(1)}</td>
+            <td class="px-1 py-2 font-mono">
+              <input type="number" value="${entry.qty.toFixed(1)}" min="0.1" step="0.1"
+                onchange="updateBasketQuantity(${index}, this.value)"
+                class="w-16 sfl-input rounded px-1.5 py-0.5 text-xs font-bold text-sfl-dirt focus:outline-none focus:ring-1 focus:ring-sfl-gold">
+            </td>
             <td class="px-2 py-2.5 text-sfl-green font-bold">${subtotalDisplay}</td>
             <td class="px-2 py-2.5 text-sfl-gold font-bold">${bettyCoinsDisplay}</td>
             <td class="px-2 py-2.5 text-amber-600 font-bold">${ratioCoinsDisplay}</td>
@@ -673,7 +690,6 @@
         let cropBadges = '';
 
         if (Array.isArray(entry.crops)) {
-          // Render detailed crop badges with individual values
           cropBadges = entry.crops
             .map(crop => `
               <span class="inline-flex items-center gap-1 bg-amber-100 text-amber-900 border border-amber-400 text-[11px] font-bold px-2 py-0.5 rounded shadow-sm mr-1 mb-1">
@@ -685,7 +701,7 @@
             `)
             .join('');
         } else {
-          // Fallback compatibility for old simple key-value format
+          // Backward compatibility fallback for legacy simple key-value entries
           cropBadges = Object.entries(entry.crops)
             .map(([name, qty]) => `<span class="inline-block bg-amber-100 text-amber-900 border border-amber-400 text-[11px] font-bold px-1.5 py-0.5 rounded mr-1 mb-1">${name}: ${qty.toFixed(1)}</span>`)
             .join('');
