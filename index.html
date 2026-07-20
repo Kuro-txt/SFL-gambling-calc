@@ -128,7 +128,7 @@
             <label class="block text-xs font-bold uppercase tracking-wider text-sfl-wood">🔢 Quantity</label>
             <span id="inventory-hint" class="text-[11px] font-bold text-sfl-green hidden">Farm Stock: <span id="stock-count">0</span></span>
           </div>
-          <input type="number" id="quantity" value="1" min="1" step="0.001" 
+          <input type="number" id="quantity" value="1" min="0.1" step="0.1" 
             class="w-full sfl-input rounded-lg px-3 py-2 text-sm text-sfl-dirt focus:outline-none focus:ring-2 focus:ring-sfl-gold">
         </div>
 
@@ -322,14 +322,21 @@
       return pricesMap;
     }
 
-    // Rounding Flowers to 3 Decimal Places
+    // Round Quantity to 1 Decimal Place
+    function roundUpToOneDecimal(val) {
+      let num = typeof val === 'number' ? val : parseFloat(val);
+      if (isNaN(num) || num < 0.01) return 0;
+      return Math.ceil(num * 10) / 10;
+    }
+
+    // Round Flowers to 3 Decimal Places
     function roundUpToThreeDecimals(val) {
       let num = typeof val === 'number' ? val : parseFloat(val);
       if (isNaN(num) || num < 0.0001) return 0;
       return Math.ceil(num * 1000) / 1000;
     }
 
-    // Rounding Coins to 2 Decimal Places
+    // Round Coins to 2 Decimal Places
     function roundUpToTwoDecimals(val) {
       let num = typeof val === 'number' ? val : parseFloat(val);
       if (isNaN(num) || num < 0.01) return 0;
@@ -343,7 +350,7 @@
         if (cleanInvKey === cleanSelected) {
           let val = farmInventoryData[invKey];
           let rawVal = typeof val === 'number' ? val : parseFloat(val.amount || val || 0);
-          return roundUpToThreeDecimals(rawVal);
+          return roundUpToOneDecimal(rawVal);
         }
       }
       return 0;
@@ -404,7 +411,7 @@
           let stock = getItemStock(displayName);
 
           let stockBadge = stock > 0 
-            ? `<span class="text-[11px] font-bold text-sfl-green bg-green-100 border border-sfl-green/30 px-1.5 py-0.5 rounded ml-1.5">Qty: ${stock}</span>`
+            ? `<span class="text-[11px] font-bold text-sfl-green bg-green-100 border border-sfl-green/30 px-1.5 py-0.5 rounded ml-1.5">Qty: ${stock.toFixed(1)}</span>`
             : `<span class="text-[11px] text-sfl-woodLight/60 ml-1.5">(0)</span>`;
 
           const li = document.createElement('li');
@@ -446,9 +453,9 @@
       let foundStock = getItemStock(cleanName);
 
       if (foundStock > 0) {
-        document.getElementById('quantity').value = foundStock;
+        document.getElementById('quantity').value = foundStock.toFixed(1);
         document.getElementById('inventory-hint').classList.remove('hidden');
-        document.getElementById('stock-count').textContent = foundStock;
+        document.getElementById('stock-count').textContent = foundStock.toFixed(1);
       } else {
         document.getElementById('quantity').value = 1;
         document.getElementById('inventory-hint').classList.add('hidden');
@@ -457,7 +464,7 @@
 
     document.getElementById('add-btn').addEventListener('click', () => {
       const rawQty = parseFloat(document.getElementById('quantity').value) || 0;
-      const qty = roundUpToThreeDecimals(rawQty);
+      const qty = roundUpToOneDecimal(rawQty);
 
       if (!selectedItemKey || qty <= 0) return;
 
@@ -530,7 +537,7 @@
 
           tr.innerHTML = `
             <td class="px-2 py-2.5 font-bold text-sfl-dirt">${cleanName}</td>
-            <td class="px-1 py-2.5 font-mono">${entry.qty}</td>
+            <td class="px-1 py-2.5 font-mono">${entry.qty.toFixed(1)}</td>
             <td class="px-2 py-2.5 text-sfl-green font-bold">${subtotalDisplay}</td>
             <td class="px-2 py-2.5 text-sfl-gold font-bold">${bettyCoinsDisplay}</td>
             <td class="px-2 py-2.5 text-amber-600 font-bold">${ratioCoinsDisplay}</td>
