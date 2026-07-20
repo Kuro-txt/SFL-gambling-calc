@@ -122,7 +122,7 @@
             <label class="block text-xs font-bold uppercase tracking-wider text-sfl-wood">🔢 Quantity</label>
             <span id="inventory-hint" class="text-[11px] font-bold text-sfl-green hidden">Farm Stock: <span id="stock-count">0</span></span>
           </div>
-          <input type="number" id="quantity" value="1" min="1" 
+          <input type="number" id="quantity" value="1" min="1" step="0.01" 
             class="w-full sfl-input rounded-lg px-3 py-2 text-sm text-sfl-dirt focus:outline-none focus:ring-2 focus:ring-sfl-gold">
         </div>
 
@@ -132,7 +132,7 @@
         </button>
       </div>
 
-      <!-- RIGHT SIDE: Basket Table -->
+      <!-- RIGHT SIDE: Basket Table & Tax Calculator -->
       <div class="flex flex-col h-full space-y-4">
         
         <div class="bg-white/70 border-2 border-sfl-cardBorder rounded-xl overflow-hidden flex-grow shadow-sm">
@@ -144,7 +144,7 @@
             </div>
           </div>
 
-          <div class="max-h-[320px] overflow-y-auto">
+          <div class="max-h-[260px] overflow-y-auto">
             <table class="w-full text-left text-sm text-sfl-dirt">
               <thead class="text-xs uppercase bg-sfl-card border-b-2 border-sfl-cardBorder text-sfl-wood">
                 <tr>
@@ -165,9 +165,30 @@
           </div>
         </div>
 
-        <div class="bg-sfl-gold/20 border-2 border-sfl-gold rounded-xl p-4 text-center shadow-inner">
-          <span class="text-xs font-bold uppercase tracking-widest text-sfl-wood">Total SFL Value</span>
-          <h2 id="total-sfl" class="text-3xl font-pixel font-bold text-sfl-wood mt-0.5">0.0000 SFL</h2>
+        <!-- Market Tax Dropdown Selection -->
+        <div class="bg-sfl-card/90 p-3 rounded-xl border-2 border-sfl-cardBorder flex items-center justify-between gap-2">
+          <label class="text-xs font-bold text-sfl-wood uppercase flex items-center gap-1">
+            <span>🏷️</span> Market Tax Rate:
+          </label>
+          <select id="tax-select" class="sfl-input rounded-lg px-3 py-1 text-xs font-bold text-sfl-dirt focus:outline-none focus:ring-2 focus:ring-sfl-gold cursor-pointer">
+            <option value="0">0% (No Tax)</option>
+            <option value="0.05">5% Tax</option>
+            <option value="0.075">7.5% Tax</option>
+            <option value="0.10" selected>10% Tax</option>
+            <option value="0.125">12.5% Tax</option>
+            <option value="0.15">15% Tax</option>
+          </select>
+        </div>
+
+        <!-- Total Display Banner -->
+        <div class="bg-sfl-gold/20 border-2 border-sfl-gold rounded-xl p-4 text-center shadow-inner space-y-1">
+          <div class="flex justify-between text-xs text-sfl-woodLight font-semibold px-2">
+            <span>Gross Total: <span id="gross-sfl" class="font-mono text-sfl-dirt">0.0000 SFL</span></span>
+            <span>Tax (-): <span id="tax-deduction" class="font-mono text-sfl-accent">0.0000 SFL</span></span>
+          </div>
+          <hr class="border-sfl-cardBorder/40 my-1">
+          <span class="text-xs font-bold uppercase tracking-widest text-sfl-wood">Net SFL Value</span>
+          <h2 id="total-sfl" class="text-3xl font-pixel font-bold text-sfl-green mt-0.5">0.0000 SFL</h2>
         </div>
 
       </div>
@@ -180,7 +201,7 @@
     let allPrices = {};
     let basket = [];
     let selectedItemKey = null;
-    let farmInventoryData = {}; // Stores farm inventory in background memory
+    let farmInventoryData = {};
 
     document.addEventListener('DOMContentLoaded', () => {
       if (localStorage.getItem('sfl_farm_id')) {
@@ -218,7 +239,12 @@
       return pricesMap;
     }
 
-    // Background Sync Inventory Only
+    function roundUpToTwoDecimals(val) {
+      let num = typeof val === 'number' ? val : parseFloat(val);
+      if (isNaN(num) || num < 0.0001) return 0;
+      return Math.ceil(num * 100) / 100;
+    }
+
     document.getElementById('import-farm-btn').addEventListener('click', () => {
       const farmId = document.getElementById('farm-id').value.trim();
       const apiKey = document.getElementById('api-key').value.trim();
@@ -295,7 +321,6 @@
       document.getElementById('selected-item-name').textContent = itemKey;
       document.getElementById('selected-item-price').textContent = `${allPrices[itemKey]} SFL`;
 
-      // Clean item name to check background farm inventory
       let cleanSelected = itemKey.replace(/^\[.*?\]\s*/, '').toLowerCase().replace(/[^a-z0-9]/g, '');
       let foundStock = 0;
 
@@ -303,12 +328,12 @@
         let cleanInvKey = invKey.toLowerCase().replace(/[^a-z0-9]/g, '');
         if (cleanInvKey === cleanSelected) {
           let val = farmInventoryData[invKey];
-          foundStock = typeof val === 'number' ? val : parseFloat(val.amount || val || 0);
+          let rawVal = typeof val === 'number' ? val : parseFloat(val.amount || val || 0);
+          foundStock = roundUpToTwoDecimals(rawVal);
           break;
         }
       }
 
-      // Auto-fill quantity box if stock is found!
       if (foundStock > 0) {
         document.getElementById('quantity').value = foundStock;
         document.getElementById('inventory-hint').classList.remove('hidden');
@@ -320,7 +345,8 @@
     }
 
     document.getElementById('add-btn').addEventListener('click', () => {
-      const qty = parseFloat(document.getElementById('quantity').value) || 0;
+      const rawQty = parseFloat(document.getElementById('quantity').value) || 0;
+      const qty = roundUpToTwoDecimals(rawQty);
 
       if (!selectedItemKey || qty <= 0) return;
 
@@ -329,6 +355,13 @@
 
       basket.push({ item: selectedItemKey, qty, unitPrice, subtotal });
       updateBasketTable();
+
+      // Reset input fields
+      input.value = '';
+      selectedItemKey = null;
+      document.getElementById('quantity').value = 1;
+      document.getElementById('selected-item-badge').classList.add('hidden');
+      document.getElementById('inventory-hint').classList.add('hidden');
     });
 
     document.getElementById('clear-basket').addEventListener('click', () => {
@@ -336,17 +369,19 @@
       updateBasketTable();
     });
 
+    document.getElementById('tax-select').addEventListener('change', updateBasketTable);
+
     function updateBasketTable() {
       const tbody = document.getElementById('basket-body');
       tbody.innerHTML = '';
 
-      let grandTotal = 0;
+      let grandGrossTotal = 0;
 
       if (basket.length === 0) {
         tbody.innerHTML = '<tr><td colspan="4" class="px-4 py-8 text-center text-sfl-woodLight italic">Your farm basket is empty!</td></tr>';
       } else {
         basket.forEach((entry, index) => {
-          grandTotal += entry.subtotal;
+          grandGrossTotal += entry.subtotal;
           let tr = document.createElement('tr');
           tr.className = "hover:bg-amber-50/50 transition";
           
@@ -366,7 +401,14 @@
         });
       }
 
-      document.getElementById('total-sfl').textContent = `${grandTotal.toFixed(4)} SFL`;
+      // Calculate tax and net value
+      const taxRate = parseFloat(document.getElementById('tax-select').value) || 0;
+      const taxAmount = grandGrossTotal * taxRate;
+      const netTotal = grandGrossTotal - taxAmount;
+
+      document.getElementById('gross-sfl').textContent = `${grandGrossTotal.toFixed(4)} SFL`;
+      document.getElementById('tax-deduction').textContent = `${taxAmount.toFixed(4)} SFL`;
+      document.getElementById('total-sfl').textContent = `${netTotal.toFixed(4)} SFL`;
       document.getElementById('item-count').textContent = `${basket.length} Item${basket.length === 1 ? '' : 's'}`;
     }
 
