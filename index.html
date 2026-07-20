@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SFL Buddy Market Calculator</title>
-  <!-- Google Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=VT323&family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -63,7 +62,6 @@
 
   <div class="w-full max-w-5xl sfl-panel rounded-2xl p-6 sm:p-8 relative">
     
-    <!-- Top Header Ribbon -->
     <div class="text-center mb-6">
       <div class="inline-block bg-sfl-wood text-amber-200 border-2 border-sfl-dirt px-6 py-1.5 rounded-full shadow-md">
         <h1 class="text-2xl sm:text-4xl font-pixel tracking-wider font-bold text-amber-300 flex items-center gap-2 justify-center">
@@ -96,10 +94,9 @@
       <p id="sync-status" class="text-xs text-center mt-2 font-bold text-sfl-woodLight"></p>
     </div>
 
-    <!-- Two Column Layout -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
       
-      <!-- LEFT SIDE: Item Selector -->
+      <!-- LEFT SIDE: Manual Add -->
       <div class="bg-sfl-card/80 p-5 rounded-xl border-2 border-sfl-cardBorder space-y-4">
         <h2 class="text-lg font-bold text-sfl-wood border-b-2 border-sfl-cardBorder pb-2 flex items-center gap-2">
           <span>📦</span> Manual Item Add
@@ -107,7 +104,7 @@
 
         <div class="relative">
           <label class="block text-xs font-bold uppercase tracking-wider text-sfl-wood mb-1">🔍 Search & Select Item</label>
-          <input type="text" id="combobox-input" placeholder="Type to search (e.g. Gold, Sunflower)..." autocomplete="off"
+          <input type="text" id="combobox-input" placeholder="Type to search..." autocomplete="off"
             class="w-full sfl-input rounded-lg px-3 py-2 text-sm text-sfl-dirt focus:outline-none focus:ring-2 focus:ring-sfl-gold">
           
           <ul id="combobox-menu" class="hidden absolute left-0 right-0 top-full mt-1 max-h-48 overflow-y-auto bg-white border-2 border-sfl-woodLight rounded-lg shadow-xl z-20 divide-y divide-sfl-cardBorder/30 text-sm">
@@ -132,7 +129,7 @@
         </button>
       </div>
 
-      <!-- RIGHT SIDE: Basket Calculator -->
+      <!-- RIGHT SIDE: Basket Table -->
       <div class="flex flex-col h-full space-y-4">
         
         <div class="bg-white/70 border-2 border-sfl-cardBorder rounded-xl overflow-hidden flex-grow shadow-sm">
@@ -181,7 +178,6 @@
     let basket = [];
     let selectedItemKey = null;
 
-    // Load credentials
     document.addEventListener('DOMContentLoaded', () => {
       if (localStorage.getItem('sfl_farm_id')) {
         document.getElementById('farm-id').value = localStorage.getItem('sfl_farm_id');
@@ -194,7 +190,6 @@
     document.getElementById('farm-id').addEventListener('input', (e) => localStorage.setItem('sfl_farm_id', e.target.value));
     document.getElementById('api-key').addEventListener('input', (e) => localStorage.setItem('sfl_api_key', e.target.value));
 
-    // Fetch live market prices
     fetch('/api/get-data')
       .then(res => res.json())
       .then(rawData => {
@@ -219,7 +214,7 @@
       return pricesMap;
     }
 
-    // Import Farm API
+    // Advanced Sync & Auto-Fill
     document.getElementById('import-farm-btn').addEventListener('click', () => {
       const farmId = document.getElementById('farm-id').value.trim();
       const apiKey = document.getElementById('api-key').value.trim();
@@ -237,43 +232,60 @@
         .then(data => {
           if (data.error) throw new Error(data.error);
 
-          // Find inventory object wherever sfl.world places it
-          let inventory = data.inventory || data.farm?.inventory || data;
-          
-          if (typeof inventory !== 'object') {
-            throw new Error('Invalid inventory data format received');
+          const inventory = data.inventory;
+          if (!inventory || typeof inventory !== 'object') {
+            throw new Error('Received unexpected inventory format from sfl.world');
           }
 
           let addedCount = 0;
-          basket = []; // reset basket with fresh farm sync
+          basket = []; // Clear basket for clean sync
 
-          // Loop over inventory items and match with prices
-          for (let itemName in inventory) {
-            let itemVal = inventory[itemName];
-            let qty = typeof itemVal === 'number' ? itemVal : (itemVal.amount || itemVal.quantity || 0);
+          // Scan inventory entries recursively
+          function scanInventory(obj) {
+            for (let rawItemName in obj) {
+              let val = obj[rawItemName];
 
-            if (qty <= 0) continue;
+              if (typeof val === 'number' && val > 0) {
+                processItem(rawItemName, val);
+              } else if (val && typeof val === 'object') {
+                let qty = parseFloat(val.amount || val.quantity || val.count || 0);
+                if (qty > 0) {
+                  processItem(rawItemName, qty);
+                } else {
+                  scanInventory(val); // Drill deeper into nested inventory objects
+                }
+              }
+            }
+          }
 
-            // Search for matching price in allPrices
-            let matchedPriceKey = Object.keys(allPrices).find(key => {
-              let cleanKey = key.replace(/^\[.*?\]\s*/, '').toLowerCase();
-              return cleanKey === itemName.toLowerCase();
+          function processItem(itemName, quantity) {
+            // Flexible string matching between inventory item and market price key
+            let cleanItem = itemName.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+            let priceKey = Object.keys(allPrices).find(key => {
+              let cleanPriceKey = key.replace(/^\[.*?\]\s*/, '').toLowerCase().replace(/[^a-z0-9]/g, '');
+              return cleanPriceKey === cleanItem;
             });
 
-            if (matchedPriceKey && allPrices[matchedPriceKey]) {
-              let unitPrice = allPrices[matchedPriceKey];
-              let subtotal = unitPrice * qty;
-
-              basket.push({ item: matchedPriceKey, qty, unitPrice, subtotal });
+            if (priceKey && allPrices[priceKey] > 0) {
+              let unitPrice = allPrices[priceKey];
+              let subtotal = unitPrice * quantity;
+              basket.push({ item: priceKey, qty: quantity, unitPrice, subtotal });
               addedCount++;
             }
           }
 
+          scanInventory(inventory);
           updateBasketTable();
-          status.textContent = `✅ Successfully imported ${addedCount} items into your basket!`;
+
+          if (addedCount > 0) {
+            status.textContent = `✅ Successfully imported ${addedCount} items into your basket!`;
+          } else {
+            status.textContent = `⚠️ Connected successfully, but 0 items matched current market prices.`;
+          }
         })
         .catch(err => {
-          status.textContent = '❌ Error: ' + err.message;
+          status.textContent = '❌ Sync Error: ' + err.message;
         });
     });
 
