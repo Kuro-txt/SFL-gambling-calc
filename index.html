@@ -133,22 +133,38 @@
         </button>
       </div>
 
-      <!-- RIGHT SIDE: Tax, Basket Table & Currency Conversion -->
+      <!-- RIGHT SIDE: Combined Settings, Basket Table & Currency Conversion -->
       <div class="flex flex-col h-full space-y-4">
         
-        <!-- Market Tax Selector ABOVE Basket -->
-        <div class="bg-sfl-card/90 p-3 rounded-xl border-2 border-sfl-cardBorder flex items-center justify-between gap-2 shadow-sm">
-          <label class="text-xs font-bold text-sfl-wood uppercase flex items-center gap-1">
-            <span>🏷️</span> Market Tax Rate:
-          </label>
-          <select id="tax-select" class="sfl-input rounded-lg px-3 py-1 text-xs font-bold text-sfl-dirt focus:outline-none focus:ring-2 focus:ring-sfl-gold cursor-pointer">
-            <option value="0">0% (No Tax)</option>
-            <option value="0.05">5% Tax</option>
-            <option value="0.075">7.5% Tax</option>
-            <option value="0.10" selected>10% Tax</option>
-            <option value="0.125">12.5% Tax</option>
-            <option value="0.15">15% Tax</option>
-          </select>
+        <!-- Combined Settings Panel (Tax + Coin Ratio) ABOVE Basket -->
+        <div class="bg-sfl-card/90 p-3.5 rounded-xl border-2 border-sfl-cardBorder shadow-sm">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            
+            <!-- Market Tax Option -->
+            <div class="flex flex-col">
+              <label class="text-xs font-bold text-sfl-wood uppercase mb-1 flex items-center gap-1">
+                <span>🏷️</span> Market Tax Rate
+              </label>
+              <select id="tax-select" class="w-full sfl-input rounded-lg px-2.5 py-1 text-xs font-bold text-sfl-dirt focus:outline-none focus:ring-2 focus:ring-sfl-gold cursor-pointer">
+                <option value="0">0% (No Tax)</option>
+                <option value="0.05">5% Tax</option>
+                <option value="0.075">7.5% Tax</option>
+                <option value="0.10" selected>10% Tax</option>
+                <option value="0.125">12.5% Tax</option>
+                <option value="0.15">15% Tax</option>
+              </select>
+            </div>
+
+            <!-- Coin Ratio Option -->
+            <div class="flex flex-col">
+              <label class="text-xs font-bold text-sfl-wood uppercase mb-1 flex items-center gap-1">
+                <span>🪙</span> Coins per 1 Flower
+              </label>
+              <input type="number" id="coin-ratio" value="1000" min="1" step="1" 
+                class="w-full sfl-input rounded-lg px-2.5 py-1 text-xs font-bold text-sfl-dirt focus:outline-none focus:ring-2 focus:ring-sfl-gold">
+            </div>
+
+          </div>
         </div>
 
         <!-- Basket Table Container -->
@@ -181,15 +197,6 @@
               </tbody>
             </table>
           </div>
-        </div>
-
-        <!-- Manual Coin Ratio Setting -->
-        <div class="bg-sfl-card/90 p-3 rounded-xl border-2 border-sfl-cardBorder flex items-center justify-between gap-2">
-          <label class="text-xs font-bold text-sfl-wood uppercase flex items-center gap-1">
-            <span>🪙</span> Coins per 1 Flower Ratio:
-          </label>
-          <input type="number" id="coin-ratio" value="1000" min="1" step="1" 
-            class="w-28 sfl-input text-right rounded-lg px-2 py-1 text-xs font-bold text-sfl-dirt focus:outline-none focus:ring-2 focus:ring-sfl-gold">
         </div>
 
         <!-- Total Display Banner -->
