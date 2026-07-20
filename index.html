@@ -2,134 +2,187 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>SFL Item Calculator</title>
-  <style>
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      max-width: 480px;
-      margin: 40px auto;
-      padding: 24px;
-      border: 1px solid #e2e8f0;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-      background-color: #ffffff;
-    }
-    h2 { color: #2d3748; margin-top: 0; text-align: center; }
-    label { font-weight: 600; color: #4a5568; display: block; margin-top: 15px; margin-bottom: 5px; }
-    select, input {
-      width: 100%;
-      padding: 10px 12px;
-      border: 1px solid #cbd5e0;
-      border-radius: 6px;
-      font-size: 16px;
-      box-sizing: border-box;
-    }
-    .total-box {
-      margin-top: 20px;
-      background: #f0fff4;
-      border: 1px solid #c6f6d5;
-      border-radius: 8px;
-      padding: 16px;
-      text-align: center;
-    }
-    .total-box h3 { margin: 0; color: #276749; font-size: 14px; text-transform: uppercase; }
-    .total-box h1 { margin: 5px 0 0 0; color: #22543d; font-size: 32px; }
-    .unit-price { text-align: center; color: #718096; font-size: 13px; margin-top: 8px; }
-  </style>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SFL Market Calculator</title>
+  <!-- Tailwind CSS CDN for instant modern styling -->
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
+<body class="bg-slate-900 text-slate-100 min-h-screen p-4 sm:p-8">
 
-  <h2>🌻 SFL Item Calculator</h2>
+  <div class="max-w-2xl mx-auto bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-2xl">
+    
+    <!-- Header -->
+    <div class="flex items-center justify-between pb-6 border-b border-slate-700">
+      <div>
+        <h1 class="text-2xl font-bold text-amber-400 flex items-center gap-2">
+          <span>🌻</span> SFL Market Calculator
+        </h1>
+        <p class="text-xs text-slate-400 mt-1">Live data proxied from sfl.world</p>
+      </div>
+      <span class="bg-emerald-500/10 text-emerald-400 text-xs font-semibold px-3 py-1 rounded-full border border-emerald-500/20">
+        Live Market
+      </span>
+    </div>
 
-  <label for="item-select">Choose Item:</label>
-  <select id="item-select">
-    <option>Loading items from sfl.world...</option>
-  </select>
+    <!-- Inputs Section -->
+    <div class="space-y-4 mt-6">
+      
+      <!-- Search Input -->
+      <div>
+        <label class="block text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">Search Items</label>
+        <input type="text" id="search" placeholder="Type to filter (e.g. Gold, Sunflower)..." 
+          class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-amber-400 transition">
+      </div>
 
-  <label for="quantity">Quantity:</label>
-  <input type="number" id="quantity" value="1" min="1" step="any">
+      <!-- Item Select Dropdown -->
+      <div>
+        <label class="block text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">Select Item</label>
+        <select id="item-select" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-amber-400 transition">
+          <option>Loading live prices...</option>
+        </select>
+      </div>
 
-  <div class="total-box">
-    <h3>Total Value</h3>
-    <h1 id="total">0 SFL</h1>
-    <div id="unit-price" class="unit-price">Unit price: 0 SFL</div>
+      <!-- Quantity Input -->
+      <div>
+        <label class="block text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">Quantity</label>
+        <input type="number" id="quantity" value="1" min="1" 
+          class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-amber-400 transition">
+      </div>
+
+      <!-- Add Button -->
+      <button id="add-btn" 
+        class="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-3 rounded-lg transition transform active:scale-[0.98]">
+        + Add to Calculator Basket
+      </button>
+    </div>
+
+    <!-- Basket Table -->
+    <div class="mt-8 overflow-x-auto">
+      <table class="w-full text-left text-sm text-slate-300">
+        <thead class="text-xs uppercase bg-slate-900/50 text-slate-400 border-b border-slate-700">
+          <tr>
+            <th class="px-4 py-3">Item</th>
+            <th class="px-4 py-3">Qty</th>
+            <th class="px-4 py-3">Subtotal</th>
+            <th class="px-4 py-3 text-right">Action</th>
+          </tr>
+        </thead>
+        <tbody id="basket-body" class="divide-y divide-slate-700/50">
+          <tr>
+            <td colspan="4" class="px-4 py-6 text-center text-slate-500 italic">
+              No items in your basket yet.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Total Display Banner -->
+    <div class="mt-6 bg-slate-900/80 border border-amber-500/20 rounded-xl p-5 text-center">
+      <span class="text-xs font-semibold uppercase tracking-widest text-slate-400">Total Estimated Cost</span>
+      <h2 id="total-sfl" class="text-3xl font-extrabold text-amber-400 mt-1">0.0000 SFL</h2>
+    </div>
+
   </div>
 
   <script>
-    let itemPrices = {};
+    let allPrices = {};
+    let basket = [];
 
     fetch('/api/get-data')
       .then(res => res.json())
       .then(rawData => {
-        // Flatten nested objects (p2p, seq, ge, etc.) into a clean item list
-        itemPrices = extractPrices(rawData);
-
-        const select = document.getElementById('item-select');
-        select.innerHTML = '';
-
-        const itemNames = Object.keys(itemPrices).sort();
-
-        if (itemNames.length === 0) {
-          select.innerHTML = '<option>No items found</option>';
-          return;
-        }
-
-        itemNames.forEach(item => {
-          let opt = document.createElement('option');
-          opt.value = item;
-          opt.textContent = item;
-          select.appendChild(opt);
-        });
-
-        calculate();
-      })
-      .catch(err => {
-        console.error(err);
-        document.getElementById('item-select').innerHTML = '<option>Error loading prices</option>';
+        allPrices = extractPrices(rawData);
+        renderDropdown();
       });
 
-    // Helper function to scan through nested API categories (p2p, seq, etc.)
     function extractPrices(data) {
       let pricesMap = {};
-
-      function searchObj(obj, categoryPrefix = '') {
+      function searchObj(obj, category = '') {
         for (let key in obj) {
           let val = obj[key];
-          
           if (typeof val === 'number') {
-            pricesMap[categoryPrefix + key] = val;
+            pricesMap[category + key] = val;
           } else if (val && typeof val === 'object') {
-            if (val.price !== undefined) {
-              pricesMap[categoryPrefix + key] = parseFloat(val.price);
-            } else if (val.sfl !== undefined) {
-              pricesMap[categoryPrefix + key] = parseFloat(val.sfl);
-            } else {
-              // Drill deeper into nested market categories like p2p or seq
-              searchObj(val, key.length <= 4 ? `[${key.toUpperCase()}] ` : '');
-            }
+            let p = val.price || val.sfl || val.sflPrice;
+            if (p !== undefined) pricesMap[category + key] = parseFloat(p);
+            else searchObj(val, key.length <= 4 ? `[${key.toUpperCase()}] ` : '');
           }
         }
       }
-
       searchObj(data);
       return pricesMap;
     }
 
-    function calculate() {
-      let selectedItem = document.getElementById('item-select').value;
-      let qty = parseFloat(document.getElementById('quantity').value) || 0;
+    function renderDropdown() {
+      const select = document.getElementById('item-select');
+      const searchTerm = document.getElementById('search').value.toLowerCase();
+      select.innerHTML = '';
 
-      if (selectedItem && itemPrices[selectedItem] !== undefined) {
-        let unitPrice = itemPrices[selectedItem];
-        let grandTotal = (unitPrice * qty).toFixed(4);
+      const filteredKeys = Object.keys(allPrices)
+        .filter(key => key.toLowerCase().includes(searchTerm))
+        .sort();
 
-        document.getElementById('total').textContent = `${grandTotal} SFL`;
-        document.getElementById('unit-price').textContent = `Unit price: ${unitPrice} SFL`;
+      if (filteredKeys.length === 0) {
+        select.innerHTML = '<option>No matching items</option>';
+        return;
       }
+
+      filteredKeys.forEach(item => {
+        let opt = document.createElement('option');
+        opt.value = item;
+        opt.textContent = `${item} — (${allPrices[item]} SFL)`;
+        select.appendChild(opt);
+      });
     }
 
-    document.getElementById('item-select').addEventListener('change', calculate);
-    document.getElementById('quantity').addEventListener('input', calculate);
+    document.getElementById('add-btn').addEventListener('click', () => {
+      const item = document.getElementById('item-select').value;
+      const qty = parseFloat(document.getElementById('quantity').value) || 0;
+
+      if (!item || allPrices[item] === undefined || qty <= 0) return;
+
+      const unitPrice = allPrices[item];
+      const subtotal = unitPrice * qty;
+
+      basket.push({ item, qty, unitPrice, subtotal });
+      updateBasketTable();
+    });
+
+    function updateBasketTable() {
+      const tbody = document.getElementById('basket-body');
+      tbody.innerHTML = '';
+
+      let grandTotal = 0;
+
+      if (basket.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" class="px-4 py-6 text-center text-slate-500 italic">No items in your basket yet.</td></tr>';
+      } else {
+        basket.forEach((entry, index) => {
+          grandTotal += entry.subtotal;
+          let tr = document.createElement('tr');
+          tr.className = "hover:bg-slate-700/30 transition";
+          tr.innerHTML = `
+            <td class="px-4 py-3 font-medium text-slate-200">${entry.item}</td>
+            <td class="px-4 py-3">${entry.qty}</td>
+            <td class="px-4 py-3 text-amber-400 font-mono">${entry.subtotal.toFixed(4)} SFL</td>
+            <td class="px-4 py-3 text-right">
+              <button onclick="removeItem(${index})" class="text-rose-400 hover:text-rose-300 font-bold px-2 py-1">✕</button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      }
+
+      document.getElementById('total-sfl').textContent = `${grandTotal.toFixed(4)} SFL`;
+    }
+
+    function removeItem(index) {
+      basket.splice(index, 1);
+      updateBasketTable();
+    }
+
+    document.getElementById('search').addEventListener('input', renderDropdown);
   </script>
 
 </body>
