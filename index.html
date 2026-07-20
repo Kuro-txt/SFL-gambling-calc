@@ -165,15 +165,16 @@
             <table class="w-full text-left text-sm text-sfl-dirt">
               <thead class="text-xs uppercase bg-sfl-card border-b-2 border-sfl-cardBorder text-sfl-wood">
                 <tr>
-                  <th class="px-4 py-2">Item</th>
-                  <th class="px-4 py-2">Qty</th>
-                  <th class="px-4 py-2">Subtotal</th>
-                  <th class="px-4 py-2 text-right">Action</th>
+                  <th class="px-3 py-2">Item</th>
+                  <th class="px-2 py-2">Qty</th>
+                  <th class="px-3 py-2">Flowers</th>
+                  <th class="px-3 py-2">Coins</th>
+                  <th class="px-2 py-2 text-right">✕</th>
                 </tr>
               </thead>
               <tbody id="basket-body" class="divide-y divide-sfl-cardBorder/50 font-medium">
                 <tr>
-                  <td colspan="4" class="px-4 py-8 text-center text-sfl-woodLight italic">
+                  <td colspan="5" class="px-4 py-8 text-center text-sfl-woodLight italic">
                     Your farm basket is empty!
                   </td>
                 </tr>
@@ -191,22 +192,22 @@
             class="w-28 sfl-input text-right rounded-lg px-2 py-1 text-xs font-bold text-sfl-dirt focus:outline-none focus:ring-2 focus:ring-sfl-gold">
         </div>
 
-        <!-- Total Display Banner (Flowers & Coins) -->
+        <!-- Total Display Banner (Flowers & Gross Coins) -->
         <div class="bg-sfl-gold/20 border-2 border-sfl-gold rounded-xl p-4 text-center shadow-inner space-y-2">
           <div class="flex justify-between text-xs text-sfl-woodLight font-semibold px-2">
-            <span>Gross: <span id="gross-flowers" class="font-mono text-sfl-dirt">0.0000 Flowers</span></span>
-            <span>Tax (-): <span id="tax-deduction" class="font-mono text-sfl-accent">0.0000 Flowers</span></span>
+            <span>Gross: <span id="gross-flowers" class="font-mono text-sfl-dirt">0.00 Flowers</span></span>
+            <span>Tax (-): <span id="tax-deduction" class="font-mono text-sfl-accent">0.00 Flowers</span></span>
           </div>
           <hr class="border-sfl-cardBorder/40">
           
           <div class="grid grid-cols-2 gap-2 pt-1">
             <div>
               <span class="text-xs font-bold uppercase tracking-widest text-sfl-wood block">Net Flowers</span>
-              <h2 id="total-flowers" class="text-2xl sm:text-3xl font-pixel font-bold text-sfl-green mt-0.5">0.0000 🌸</h2>
+              <h2 id="total-flowers" class="text-2xl sm:text-3xl font-pixel font-bold text-sfl-green mt-0.5">0.00 🌸</h2>
             </div>
             <div class="border-l-2 border-sfl-cardBorder/40 pl-2">
-              <span class="text-xs font-bold uppercase tracking-widest text-sfl-wood block">Total Coins</span>
-              <h2 id="total-coins" class="text-2xl sm:text-3xl font-pixel font-bold text-sfl-gold mt-0.5">0 🪙</h2>
+              <span class="text-xs font-bold uppercase tracking-widest text-sfl-wood block">Gross Coins (No Tax)</span>
+              <h2 id="total-coins" class="text-2xl sm:text-3xl font-pixel font-bold text-sfl-gold mt-0.5">0.00 🪙</h2>
             </div>
           </div>
         </div>
@@ -397,43 +398,54 @@
       tbody.innerHTML = '';
 
       let grandGrossTotal = 0;
+      const coinMultiplier = parseFloat(document.getElementById('coin-ratio').value) || 1000;
 
       if (basket.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="4" class="px-4 py-8 text-center text-sfl-woodLight italic">Your farm basket is empty!</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-8 text-center text-sfl-woodLight italic">Your farm basket is empty!</td></tr>';
       } else {
         basket.forEach((entry, index) => {
           grandGrossTotal += entry.subtotal;
+
+          // Individual crop coin calculation (Gross Flowers * Coin Ratio)
+          const itemCoins = entry.subtotal * coinMultiplier;
+
           let tr = document.createElement('tr');
           tr.className = "hover:bg-amber-50/50 transition";
           
           let subtotalDisplay = entry.unitPrice > 0 
-            ? `${entry.subtotal.toFixed(4)} Flowers` 
+            ? `${roundUpToTwoDecimals(entry.subtotal).toFixed(2)} 🌸` 
             : `<span class="text-sfl-woodLight font-normal">Untradeable</span>`;
 
+          let coinsDisplay = entry.unitPrice > 0 
+            ? `${roundUpToTwoDecimals(itemCoins).toFixed(2)} 🪙` 
+            : `<span class="text-sfl-woodLight font-normal">-</span>`;
+
           tr.innerHTML = `
-            <td class="px-4 py-2.5 font-bold text-sfl-dirt">${entry.item}</td>
-            <td class="px-4 py-2.5 font-mono">${entry.qty}</td>
-            <td class="px-4 py-2.5 text-sfl-green font-bold">${subtotalDisplay}</td>
-            <td class="px-4 py-2.5 text-right">
-              <button onclick="removeItem(${index})" class="text-sfl-accent hover:text-red-700 font-bold px-2">✕</button>
+            <td class="px-3 py-2.5 font-bold text-sfl-dirt">${entry.item}</td>
+            <td class="px-2 py-2.5 font-mono">${entry.qty}</td>
+            <td class="px-3 py-2.5 text-sfl-green font-bold">${subtotalDisplay}</td>
+            <td class="px-3 py-2.5 text-sfl-gold font-bold">${coinsDisplay}</td>
+            <td class="px-2 py-2.5 text-right">
+              <button onclick="removeItem(${index})" class="text-sfl-accent hover:text-red-700 font-bold px-1">✕</button>
             </td>
           `;
           tbody.appendChild(tr);
         });
       }
 
-      // Calculate tax and net values in Flowers & Coins
+      // Calculate tax and totals
       const taxRate = parseFloat(document.getElementById('tax-select').value) || 0;
-      const coinMultiplier = parseFloat(document.getElementById('coin-ratio').value) || 1000;
 
       const taxAmount = grandGrossTotal * taxRate;
       const netFlowers = grandGrossTotal - taxAmount;
-      const totalCoins = Math.round(netFlowers * coinMultiplier);
+      
+      // Coins calculated purely from Gross Flowers (Tax not subtracted)
+      const totalGrossCoins = grandGrossTotal * coinMultiplier;
 
-      document.getElementById('gross-flowers').textContent = `${grandGrossTotal.toFixed(4)} Flowers`;
-      document.getElementById('tax-deduction').textContent = `${taxAmount.toFixed(4)} Flowers`;
-      document.getElementById('total-flowers').textContent = `${netFlowers.toFixed(4)} 🌸`;
-      document.getElementById('total-coins').textContent = `${totalCoins.toLocaleString()} 🪙`;
+      document.getElementById('gross-flowers').textContent = `${roundUpToTwoDecimals(grandGrossTotal).toFixed(2)} Flowers`;
+      document.getElementById('tax-deduction').textContent = `${roundUpToTwoDecimals(taxAmount).toFixed(2)} Flowers`;
+      document.getElementById('total-flowers').textContent = `${roundUpToTwoDecimals(netFlowers).toFixed(2)} 🌸`;
+      document.getElementById('total-coins').textContent = `${roundUpToTwoDecimals(totalGrossCoins).toFixed(2)} 🪙`;
       document.getElementById('item-count').textContent = `${basket.length} Item${basket.length === 1 ? '' : 's'}`;
     }
 
