@@ -72,6 +72,11 @@
       <p class="text-xs font-semibold text-sfl-woodLight mt-2">Live item prices & farm inventory sync</p>
     </div>
 
+    <!-- Unhighlighted Optional Info Text -->
+    <p class="text-xs text-sfl-woodLight text-center mb-1.5 font-medium">
+      💡 Farm credentials are only needed to auto-fetch inventory — you can still manually search & add items below.
+    </p>
+
     <!-- Farm Credentials Panel -->
     <div class="mb-6 bg-sfl-card/90 p-4 rounded-xl border-2 border-sfl-cardBorder">
       <h3 class="text-sm font-bold text-sfl-wood uppercase mb-2 flex items-center gap-2">
@@ -231,14 +236,14 @@
     let selectedItemKey = null;
     let farmInventoryData = {};
 
-    // Approved Crops and Fruits list:
+    // Approved Crops and Fruits list (including saltwort):
     const APPROVED_CROPS_AND_FRUITS = [
       "sunflower", "potato", "pumpkin", "carrot", "cabbage", "beetroot", 
       "cauliflower", "parsnip", "radish", "wheat", "kale", "eggplant", 
       "corn", "soybean", "barley", "rhubarb", "zucchini", "yam", "broccoli", 
       "pepper", "onion", "turnip", "artichoke", "apple", "blueberry", "orange", 
       "banana", "grape", "rice", "olive", "tomato", "lemon", "duskberry", 
-      "lunara", "celestine"
+      "lunara", "celestine", "saltwort"
     ];
 
     function isCropOrFruit(itemName) {
@@ -288,7 +293,6 @@
       return Math.ceil(num * 100) / 100;
     }
 
-    // Helper to get farm stock for any item key
     function getItemStock(displayName) {
       let cleanSelected = displayName.toLowerCase().replace(/[^a-z0-9]/g, '');
       for (let invKey in farmInventoryData) {
@@ -450,15 +454,22 @@
         basket.forEach((entry, index) => {
           grandGrossTotal += entry.subtotal;
 
-          const validForCoins = isCropOrFruit(entry.item) && entry.unitPrice > 0;
+          let cleanName = entry.item.replace(/^\[.*?\]\s*/, '');
+          const isSaltwort = cleanName.toLowerCase().trim() === "saltwort";
+          const validForCoins = isCropOrFruit(entry.item);
+
           let itemCoins = 0;
 
-          if (validForCoins) {
+          if (isSaltwort) {
+            // Saltwort is explicitly 50 coins per item
+            itemCoins = entry.qty * 50;
+            totalCropFruitCoins += itemCoins;
+          } else if (validForCoins && entry.unitPrice > 0) {
+            // Standard crops and fruits use Flower subtotal * Coin Ratio
             itemCoins = entry.subtotal * coinMultiplier;
             totalCropFruitCoins += itemCoins;
           }
 
-          let cleanName = entry.item.replace(/^\[.*?\]\s*/, '');
           let tr = document.createElement('tr');
           tr.className = "hover:bg-amber-50/50 transition";
           
@@ -466,7 +477,7 @@
             ? `${roundUpToTwoDecimals(entry.subtotal).toFixed(2)} 🌸` 
             : `<span class="text-sfl-woodLight font-normal">Untradeable</span>`;
 
-          let coinsDisplay = validForCoins 
+          let coinsDisplay = (validForCoins || isSaltwort)
             ? `${roundUpToTwoDecimals(itemCoins).toFixed(2)} 🪙` 
             : `<span class="text-sfl-woodLight font-normal text-xs">-</span>`;
 
@@ -503,5 +514,4 @@
   </script>
 
 </body>
-</html>
 </html>
