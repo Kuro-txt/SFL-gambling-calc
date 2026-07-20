@@ -1,7 +1,87 @@
-SFL Calculator
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>SFL Price Calculator</title>
+  <style>
+    body { font-family: sans-serif; max-width: 450px; margin: 40px auto; padding: 20px; border: 1px solid #ccc; border-radius: 8px; }
+    select, input { width: 100%; padding: 8px; margin-top: 5px; margin-bottom: 15px; box-sizing: border-box; }
+    .total-box { background: #eef9ff; padding: 10px; border-radius: 5px; text-align: center; }
+    .error-text { color: red; font-size: 14px; }
+  </style>
+</head>
+<body>
 
+  <h2>SFL Item Calculator</h2>
 
-  SFL Price Calculator
-  Loading items...
-  
-  0 SFL
+  <label for="item-select">Choose Item:</label>
+  <select id="item-select">
+    <option>Loading items...</option>
+  </select>
+
+  <label for="quantity">Quantity:</label>
+  <input type="number" id="quantity" value="1" min="1">
+
+  <div class="total-box">
+    <h3>Total Value</h3>
+    <h2 id="total">0 SFL</h2>
+  </div>
+
+  <p id="status-msg" class="error-text"></p>
+
+  <script>
+    let prices = {};
+
+    fetch('/api/get-data')
+      .then(res => {
+        if (!res.ok) throw new Error('Server response was not OK');
+        return res.json();
+      })
+      .then(data => {
+        // If sfl.world wraps its items inside a nested object (like data.prices or data.data)
+        prices = data.prices || data.data || data;
+
+        const select = document.getElementById('item-select');
+        select.innerHTML = '';
+
+        const keys = Object.keys(prices);
+        if (keys.length === 0) {
+          document.getElementById('status-msg').textContent = 'No item price data returned.';
+          return;
+        }
+
+        // Fill dropdown
+        keys.forEach(key => {
+          let opt = document.createElement('option');
+          opt.value = key;
+          opt.textContent = key;
+          select.appendChild(opt);
+        });
+
+        calculate();
+      })
+      .catch(err => {
+        console.error(err);
+        document.getElementById('status-msg').textContent = 'Error loading prices: ' + err.message;
+      });
+
+    function calculate() {
+      let item = document.getElementById('item-select').value;
+      let qty = parseFloat(document.getElementById('quantity').value) || 0;
+
+      if (item && prices[item]) {
+        // Extract unit price regardless of how sfl.world formats individual items
+        let itemData = prices[item];
+        let unitPrice = typeof itemData === 'number' ? itemData : (itemData.sfl || itemData.price || itemData.sflPrice || 0);
+
+        let grandTotal = (unitPrice * qty).toFixed(4);
+        document.getElementById('total').textContent = `${grandTotal} SFL`;
+      }
+    }
+
+    document.getElementById('item-select').addEventListener('change', calculate);
+    document.getElementById('quantity').addEventListener('input', calculate);
+  </script>
+
+</body>
+</html>
