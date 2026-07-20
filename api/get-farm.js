@@ -1,36 +1,29 @@
 export default async function handler(req, res) {
-  const { farmId, apiKey } = req.query;
+  const { farmId } = req.query;
 
-  if (!farmId || !apiKey) {
-    return res.status(400).json({ error: 'Farm ID and API Key are required' });
+  if (!farmId) {
+    return res.status(400).json({ error: 'Farm ID is required' });
   }
 
   try {
-    const response = await fetch(`https://sfl.world/api/v1/land/info/farm_id/${farmId}`, {
+    const response = await fetch(`https://api.sunflower-land.com/community/farms/${farmId}`, {
+      method: 'GET',
       headers: {
-        'x-api-key': apiKey,
+        'Accept': 'application/json',
         'User-Agent': 'Mozilla/5.0'
       }
     });
 
     if (!response.ok) {
       return res.status(response.status).json({ 
-        error: `API responded with HTTP status ${response.status}. Please check your Farm ID and API Key.` 
+        error: `Sunflower Land API returned status ${response.status}. Double check your Farm ID.` 
       });
     }
 
-    const rawData = await response.json();
-
-    // Dynamically locate the inventory object regardless of API response wrapping
-    let inventory = 
-      rawData.inventory || 
-      rawData.data?.inventory || 
-      rawData.farm?.inventory || 
-      rawData.data || 
-      rawData;
-
-    res.status(200).json({ success: true, inventory });
+    const data = await response.json();
+    res.status(200).json({ success: true, farm: data });
   } catch (error) {
     res.status(500).json({ error: 'Server connection failed', details: error.message });
   }
 }
+     
