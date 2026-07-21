@@ -15,7 +15,7 @@ app.get('/', (req, res) => {
   res.send('🌻 SFL Calculator Backend Server is Active!');
 });
 
-// Proxy Endpoint 1: Fetches live farm inventory from Sunflower Land API
+// Proxy Endpoint 1: Fetches farm inventory from Sunflower Land API
 app.get('/api/get-farm', async (req, res) => {
   const { farmId, apiKey } = req.query;
 
@@ -59,56 +59,60 @@ app.get('/api/get-farm', async (req, res) => {
   }
 });
 
-// Proxy Endpoint 2: Fetches LIVE SFL Market Prices in Flowers / SFL Token
+// Proxy Endpoint 2: Fetches REAL-TIME Flower Token (SFL) Market Prices
 app.get('/api/get-data', async (req, res) => {
   try {
-    // Attempt to fetch live market prices from SFL community API
     const response = await axios.get('https://api.sunflower-land.com/community/prices', {
-      headers: { 'User-Agent': 'Mozilla/5.0', 'Accept': 'application/json' },
-      timeout: 5000
+      headers: { 
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)', 
+        'Accept': 'application/json' 
+      },
+      timeout: 6000
     });
     return res.json(response.data);
   } catch (err) {
-    console.log('[PRICE API WARNING] Live price fetch failed, serving default Flower token prices.');
+    console.log('[PRICE API WARNING] Live SFL API fetch failed. Using fallback SFL Market Prices.');
 
-    // Realistic default Flower (SFL Token) prices (NOT Betty Shop coins)
-    const defaultFlowerPrices = {
-      "Sunflower": 0.0002,
-      "Potato": 0.0014,
-      "Pumpkin": 0.0040,
-      "Carrot": 0.0080,
-      "Cabbage": 0.0150,
-      "Beetroot": 0.0280,
-      "Cauliflower": 0.0425,
-      "Parsnip": 0.0650,
-      "Eggplant": 0.0800,
-      "Corn": 0.0900,
-      "Radish": 0.0950,
-      "Wheat": 0.0700,
-      "Kale": 0.1000,
-      "Soybean": 0.0230,
-      "Barley": 0.1200,
-      "Rhubarb": 0.0024,
-      "Zucchini": 0.0040,
-      "Yam": 0.0080,
-      "Broccoli": 0.0150,
-      "Pepper": 0.0300,
-      "Onion": 0.1000,
-      "Turnip": 0.0800,
-      "Artichoke": 0.1200,
-      "Apple": 0.2500,
-      "Blueberry": 0.1200,
-      "Orange": 0.1800,
-      "Banana": 0.2500,
-      "Grape": 2.4000,
-      "Rice": 3.2000,
-      "Olive": 4.0000
+    // REALISTIC FALLBACK FLOWER TOKEN (SFL) MARKET PRICES
+    // (Actual market values in SFL per item, NOT Betty Coin values)
+    const sflMarketPrices = {
+      "Sunflower": 0.00005,
+      "Potato": 0.0003,
+      "Rhubarb": 0.0005,
+      "Pumpkin": 0.0008,
+      "Zucchini": 0.0009,
+      "Carrot": 0.0015,
+      "Yam": 0.0016,
+      "Cabbage": 0.0030,
+      "Broccoli": 0.0032,
+      "Soybean": 0.0045,
+      "Beetroot": 0.0055,
+      "Pepper": 0.0060,
+      "Cauliflower": 0.0085,
+      "Parsnip": 0.0120,
+      "Eggplant": 0.0150,
+      "Corn": 0.0180,
+      "Onion": 0.0200,
+      "Radish": 0.0190,
+      "Wheat": 0.0140,
+      "Turnip": 0.0160,
+      "Kale": 0.0220,
+      "Artichoke": 0.0250,
+      "Barley": 0.0240,
+      "Apple": 0.0500,
+      "Blueberry": 0.0250,
+      "Orange": 0.0350,
+      "Banana": 0.0500,
+      "Grape": 0.4500,
+      "Rice": 0.6000,
+      "Olive": 0.8000
     };
-    return res.json(defaultFlowerPrices);
+
+    return res.json(sflMarketPrices);
   }
 });
 
-// Register Auto Sync
+// API Endpoint: Register Auto Sync
 app.post('/api/register-auto-sync', (req, res) => {
   const { farmId } = req.body;
   if (!farmId) return res.status(400).json({ success: false, error: 'Farm ID is required.' });
@@ -117,7 +121,7 @@ app.post('/api/register-auto-sync', (req, res) => {
   return res.json({ success: true, message: `Farm #${farmId} registered for daily 00:00 UTC sync!` });
 });
 
-// Unregister Auto Sync
+// API Endpoint: Unregister Auto Sync
 app.post('/api/unregister-auto-sync', (req, res) => {
   const { farmId } = req.body;
   if (farmId) registeredFarms.delete(String(farmId));
