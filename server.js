@@ -6,20 +6,36 @@ const axios = require('axios');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Enable Cross-Origin Resource Sharing (CORS) for frontend requests
+// Enable Cross-Origin Resource Sharing (CORS) for all origins
 app.use(cors());
 app.use(express.json());
 
-// In-memory list of registered farm IDs
-// (In a full production database like MongoDB, you would save these permanently)
+// In-memory list of registered farm IDs for auto-sync
 let registeredFarms = new Set();
 
-// Health check endpoint
+// Health check route
 app.get('/', (req, res) => {
   res.send('🌻 SFL Calculator Backend Server is Active!');
 });
 
-// API Endpoint: Register Farm for Auto-Sync
+// Proxy Endpoint: Fetches live farm data to bypass browser CORS rules
+app.get('/api/get-farm', async (req, res) => {
+  const { farmId } = req.query;
+
+  if (!farmId) {
+    return res.status(400).json({ error: 'Farm ID is required.' });
+  }
+
+  try {
+    const response = await axios.get(`https://api.sunflower-land.com/community/farms/${farmId}`);
+    return res.json(response.data);
+  } catch (err) {
+    console.error(`[PROXY ERROR] Farm #${farmId}:`, err.message);
+    return res.status(500).json({ error: 'Failed to fetch farm data from Sunflower Land API.' });
+  }
+});
+
+// API Endpoint: Register Farm for 00:00 UTC Auto-Sync
 app.post('/api/register-auto-sync', (req, res) => {
   const { farmId } = req.body;
 
@@ -28,7 +44,7 @@ app.post('/api/register-auto-sync', (req, res) => {
   }
 
   registeredFarms.add(String(farmId));
-  console.log(`[REGISTER] Farm #${farmId} enabled 00:00 UTC Auto Sync.`);
+  console.log(`[REGISTER] Farm #${farmId} registered for 00:00 UTC Cloud Auto Sync.`);
 
   return res.json({ 
     success: true, 
@@ -48,26 +64,26 @@ app.post('/api/unregister-auto-sync', (req, res) => {
 
 // Daily Cron Job running at 00:00 UTC ("0 0 * * *")
 cron.schedule('0 0 * * *', async () => {
-  console.log(`⏰ [00:00 UTC] Starting daily sync for ${registeredFarms.size} farms...`);
+  console.log(`⏰ [00:00 UTC] Executing daily sync for ${registeredFarms.size} farms...`);
 
   for (const farmId of registeredFarms) {
     try {
-      console.log(`⏳ Fetching fresh data for Farm #${farmId}...`);
+      console.log(`⏳ Auto-syncing Farm #${farmId}...`);
       const response = await axios.get(
         `https://api.sunflower-land.com/community/farms/${farmId}`
       );
       
       console.log(`✅ [SYNC SUCCESS] Farm #${farmId} synced successfully.`);
-      // You can store state or perform calculations here if needed
     } catch (err) {
       console.error(`❌ [SYNC ERROR] Farm #${farmId}: ${err.message}`);
     }
   }
 }, {
-  timezone: "UTC" // Guarantees execution exactly at 00:00 UTC
+  timezone: "UTC"
 });
 
 // Start Express Server
 app.listen(PORT, () => {
   console.log(`🚀 SFL Backend Server listening on port ${PORT}`);
+});
 });
