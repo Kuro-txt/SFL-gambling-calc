@@ -485,10 +485,9 @@
       return 0;
     }
 
-    // MANUAL SYNC BUTTON
+    // MANUAL SYNC BUTTON (Proxied through Render to bypass browser CORS)
     document.getElementById('import-farm-btn').addEventListener('click', async () => {
       const farmId = document.getElementById('farm-id').value.trim();
-      const apiKey = document.getElementById('api-key').value.trim();
       const status = document.getElementById('sync-status');
 
       if (!farmId) {
@@ -499,13 +498,11 @@
       status.textContent = '⏳ Fetching farm data...';
 
       try {
-        let response = await fetch(`https://api.sunflower-land.com/community/farms/${farmId}`);
-        if (!response.ok) {
-          response = await fetch(`/api/get-farm?farmId=${encodeURIComponent(farmId)}&apiKey=${encodeURIComponent(apiKey)}`);
-        }
-        
+        const response = await fetch(`${BACKEND_URL}/api/get-farm?farmId=${encodeURIComponent(farmId)}`);
+        if (!response.ok) throw new Error(`HTTP Error ${response.status}`);
+
         const data = await response.json();
-        const farmData = data.inventory ? data : (data.farm?.farm || data.farm?.data || data.farm);
+        const farmData = data.farm?.farm || data.farm?.data || data.farm || data;
         farmInventoryData = farmData?.inventory || {};
 
         let totalItemsCount = Object.keys(farmInventoryData).length;
