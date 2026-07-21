@@ -6,35 +6,53 @@ const axios = require('axios');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Allow CORS so your GitHub Pages frontend can communicate with Render
+// Enable CORS for all origins
 app.use(cors());
 app.use(express.json());
 
+// In-memory set of farm IDs registered for daily auto sync
 let registeredFarms = new Set();
 
+// Health Check
 app.get('/', (req, res) => {
   res.send('🌻 SFL Calculator Backend Server is Active!');
 });
 
-// Proxy route for farm inventory
+// Proxy Endpoint 1: Fetches live farm inventory from Sunflower Land API with browser headers
 app.get('/api/get-farm', async (req, res) => {
   const { farmId } = req.query;
-  if (!farmId) return res.status(400).json({ error: 'Farm ID is required.' });
+
+  if (!farmId) {
+    return res.status(400).json({ error: 'Farm ID is required.' });
+  }
 
   try {
     const response = await axios.get(`https://api.sunflower-land.com/community/farms/${farmId}`, {
-      headers: { 'User-Agent': 'SFL-Calculator-App/1.0', 'Accept': 'application/json' }
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'application/json'
+      },
+      timeout: 8000 // 8 second timeout
     });
+
     return res.json(response.data);
   } catch (err) {
-    if (err.response && err.response.status === 404) {
-      return res.status(404).json({ error: `Farm #${farmId} not found.` });
+    console.error(`[SFL API ERROR] Farm #${farmId}:`, err.response?.status, err.response?.data || err.message);
+
+    if (err.response?.status === 404) {
+      return res.status(404).json({ error: `Farm #${farmId} does not exist on Sunflower Land.` });
     }
-    return res.status(500).json({ error: 'Failed to fetch farm data from SFL API.' });
+    if (err.response?.status === 429) {
+      return res.status(429).json({ error: 'Sunflower Land API rate limit reached. Please wait a minute.' });
+    }
+
+    return res.status(500).json({ 
+      error: `SFL API Error (${err.response?.status || 'Timeout'}): ${err.message}` 
+    });
   }
 });
 
-// Proxy route for item price data
+// Proxy Endpoint 2: Fallback endpoint for item price data
 app.get('/api/get-data', async (req, res) => {
   try {
     const defaultPrices = {
@@ -48,27 +66,53 @@ app.get('/api/get-data', async (req, res) => {
   }
 });
 
+// API Endpoint: Register Farm for 00:00 UTC Auto-Sync
 app.post('/api/register-auto-sync', (req, res) => {
   const { farmId } = req.body;
-  if (!farmId) return res.status(400).json({ success: false, error: 'Farm ID is required.' });
+
+  if (!farmId) {
+    return res.status(400).json({ success: false, error: 'Farm ID is required.' });
+  }
+
   registeredFarms.add(String(farmId));
-  return res.json({ success: true, message: `Farm #${farmId} registered for daily auto-sync!` });
+  console.log(`[REGISTER] Farm #${farmId} registered for 00:00 UTC Cloud Auto Sync.`);
+
+  return res.json({ 
+    success: true, 
+    message: `Farm #${farmId} registered for daily 00:00 UTC sync!` 
+  });
 });
 
+// API Endpoint: Unregister Farm
 app.post('/api/unregister-auto-sync', (req, res) => {
   const { farmId } = req.body;
-  if (farmId) registeredFarms.delete(String(farmId));
+  if (farmId) {
+    registeredFarms.delete(String(farmId));
+    console.log(`[UNREGISTER] Farm #${farmId} disabled Auto Sync.`);
+  }
   return res.json({ success: true });
 });
 
+// Cron Job: 00:00 UTC Daily Auto-Sync
 cron.schedule('0 0 * * *', async () => {
+  console.log(`⏰ [00:00 UTC] Running daily sync for ${registeredFarms.size} farms...`);
+
   for (const farmId of registeredFarms) {
     try {
-      await axios.get(`https://api.sunflower-land.com/community/farms/${farmId}`);
+      console.log(`⏳ Auto-syncing Farm #${farmId}...`);
+      await axios.get(`https://api.sunflower-land.com/community/farms/${farmId}`, {
+        headers: { 'User-Agent': 'Mozilla/5.0' }
+      });
+      console.log(`✅ [SYNC SUCCESS] Farm #${farmId} synced.`);
     } catch (err) {
-      console.error(`Sync error for Farm #${farmId}: ${err.message}`);
+      console.error(`❌ [SYNC ERROR] Farm #${farmId}: ${err.message}`);
     }
   }
-}, { timezone: "UTC" });
+}, {
+  timezone: "UTC"
+});
 
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+// Start Express Server
+app.listen(PORT, () => {
+  console.log(`🚀 SFL Backend Server listening on port ${PORT}`);
+});
