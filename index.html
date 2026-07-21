@@ -106,19 +106,19 @@
 
   <div class="w-full max-w-5xl sfl-panel rounded-2xl p-6 sm:p-8 relative space-y-6">
     
-    <!-- Top Header Ribbon -->
+    <!-- Header -->
     <div class="text-center">
       <div class="inline-block bg-sfl-wood text-amber-200 border-2 border-sfl-dirt px-6 py-1.5 rounded-full shadow-md">
         <h1 class="text-2xl sm:text-4xl font-pixel tracking-wider font-bold text-amber-300 flex items-center gap-2 justify-center">
           <span>🌻</span> SFL RESOURCE CALCULATOR
         </h1>
       </div>
-      <p class="text-xs font-semibold text-sfl-woodLight mt-2">Live item prices & farm inventory sync</p>
+      <p class="text-xs font-semibold text-sfl-woodLight mt-2">Flower market prices & farm inventory sync</p>
     </div>
 
     <!-- Info Note -->
     <p class="text-xs text-sfl-woodLight text-center -mt-4 font-medium">
-      💡 Paste your API Token below if your farm requires authentication.
+      💡 Farm credentials are only needed to auto-fetch inventory — you can still manually search & add items below.
     </p>
 
     <!-- Farm Credentials & Cloud Sync Panel -->
@@ -134,7 +134,7 @@
             class="w-full sfl-input rounded-lg px-3 py-1.5 text-sm">
         </div>
         <div>
-          <label class="block text-xs font-bold text-sfl-wood mb-1">API Key / Token</label>
+          <label class="block text-xs font-bold text-sfl-wood mb-1">API Key / Token (Optional)</label>
           <input type="password" id="api-key" placeholder="Paste Key or Token" 
             class="w-full sfl-input rounded-lg px-3 py-1.5 text-sm">
         </div>
@@ -145,7 +145,6 @@
           🔄 Sync Farm Quantities Now
         </button>
 
-        <!-- 00:00 UTC Auto-Sync Toggle -->
         <div class="flex-1 bg-sfl-wood/10 border-2 border-sfl-cardBorder p-2 rounded-lg flex items-center justify-between px-3">
           <span class="text-xs font-bold text-sfl-wood flex items-center gap-1.5">
             <span>⚡</span> Cloud Auto-Sync (00:00 UTC)
@@ -169,18 +168,18 @@
         </h2>
 
         <div class="relative">
-          <label class="block text-xs font-bold uppercase tracking-wider text-sfl-wood mb-1">🔍 Search & Select Item</label>
-          <input type="text" id="combobox-input" placeholder="Type to search..." autocomplete="off"
+          <label class="block text-xs font-bold uppercase tracking-wider text-sfl-wood mb-1">🔍 Search Crops, Fruits & Resources</label>
+          <input type="text" id="combobox-input" placeholder="Type crop, fruit, or resource name..." autocomplete="off"
             class="w-full sfl-input rounded-lg px-3 py-2 text-sm text-sfl-dirt focus:outline-none focus:ring-2 focus:ring-sfl-gold">
           
-          <ul id="combobox-menu" class="hidden absolute left-0 right-0 top-full mt-1 max-h-48 overflow-y-auto bg-white border-2 border-sfl-woodLight rounded-lg shadow-xl z-20 divide-y divide-sfl-cardBorder/30 text-sm">
-            <li class="p-2 text-sfl-woodLight italic">Loading items...</li>
+          <ul id="combobox-menu" class="hidden absolute left-0 right-0 top-full mt-1 max-h-60 overflow-y-auto bg-white border-2 border-sfl-woodLight rounded-lg shadow-xl z-20 divide-y divide-sfl-cardBorder/30 text-sm">
+            <li class="p-2 text-sfl-woodLight italic">Loading item catalog...</li>
           </ul>
         </div>
 
         <div id="selected-item-badge" class="hidden bg-sfl-gold/20 border border-sfl-gold rounded-lg p-2 text-xs font-bold text-sfl-wood flex justify-between items-center">
           <span>Selected: <span id="selected-item-name" class="text-sfl-green font-extrabold">None</span></span>
-          <span id="selected-item-price" class="font-mono text-sfl-dirt flex items-center gap-1">0 Flowers</span>
+          <span id="selected-item-price" class="font-mono text-sfl-dirt flex items-center gap-1">0.0000 Flowers</span>
         </div>
 
         <div>
@@ -198,14 +197,12 @@
         </button>
       </div>
 
-      <!-- RIGHT SIDE: Settings, Basket Table & Currency Conversion -->
+      <!-- RIGHT SIDE: Settings & Basket Table -->
       <div class="flex flex-col h-full space-y-4">
         
-        <!-- Combined Settings Panel -->
         <div class="bg-sfl-card/90 p-3.5 rounded-xl border-2 border-sfl-cardBorder shadow-sm">
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             
-            <!-- Market Tax Option -->
             <div class="flex flex-col">
               <label class="text-xs font-bold text-sfl-wood uppercase mb-1 flex items-center gap-1">
                 <span>🏷️</span> Market Tax Rate
@@ -220,7 +217,6 @@
               </select>
             </div>
 
-            <!-- Coin Ratio Option -->
             <div class="flex flex-col">
               <label class="text-xs font-bold text-sfl-wood uppercase mb-1 flex items-center gap-1">
                 <img src="./assets/coins.webp" onerror="this.onerror=null;this.src='https://raw.githubusercontent.com/sunflower-land/sunflower-land/main/src/assets/icons/coins.webp';" class="w-4 h-4 sfl-icon" alt="Coins"> Coins per 1 Flower
@@ -232,7 +228,6 @@
           </div>
         </div>
 
-        <!-- Basket Table Container -->
         <div class="bg-white/70 border-2 border-sfl-cardBorder rounded-xl overflow-hidden flex-grow shadow-sm">
           <div class="bg-sfl-wood text-amber-200 px-4 py-2 text-xs font-bold uppercase tracking-wider border-b-2 border-sfl-dirt flex justify-between items-center">
             <span>🛒 Farm Basket</span>
@@ -265,7 +260,6 @@
           </div>
         </div>
 
-        <!-- Total Display Banner -->
         <div class="bg-sfl-gold/20 border-2 border-sfl-gold rounded-xl p-4 text-center shadow-inner space-y-2">
           <div class="flex justify-between text-xs text-sfl-woodLight font-semibold px-2">
             <span>Gross: <span id="gross-flowers" class="font-mono text-sfl-dirt">0.000 Flowers</span></span>
@@ -302,7 +296,7 @@
 
     </div>
 
-    <!-- HARVEST SESSION YIELD TRACKER SECTION -->
+    <!-- HARVEST TRACKER -->
     <div class="bg-sfl-card/90 p-4 rounded-xl border-2 border-sfl-cardBorder shadow-sm space-y-3">
       <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
         <div>
@@ -329,7 +323,6 @@
         </div>
       </div>
 
-      <!-- Pre-Harvest Baseline Status -->
       <div id="pre-harvest-status" class="hidden bg-amber-100/80 border border-amber-400 p-2 rounded-lg text-xs font-bold text-amber-900 flex justify-between items-center">
         <span>🚩 Pre-Harvest Baseline Set (<span id="pre-harvest-time"></span>)</span>
         <button id="clear-pre-harvest-btn" class="text-[10px] bg-sfl-accent text-white px-2 py-0.5 rounded">Clear Baseline</button>
@@ -360,7 +353,6 @@
   </div>
 
   <script>
-    // Live Render URL
     const BACKEND_URL = "https://sfl-calculator-backend.onrender.com";
 
     let allPrices = {};
@@ -371,6 +363,18 @@
 
     const FLOWER_ICON = `<img src="./assets/flower.webp" onerror="this.onerror=null;this.src='https://raw.githubusercontent.com/sunflower-land/sunflower-land/main/src/assets/icons/sfl.png';" class="w-4 h-4 sfl-icon" alt="Flower Token">`;
     const COIN_ICON = `<img src="./assets/coins.webp" onerror="this.onerror=null;this.src='https://raw.githubusercontent.com/sunflower-land/sunflower-land/main/src/assets/icons/coins.webp';" class="w-4 h-4 sfl-icon" alt="Coins">`;
+
+    const EXCLUDED_KEYWORDS = [
+      'seed', 'axe', 'pickaxe', 'rod', 'shovel', 'drill', 
+      'worm', 'wiggler', 'grub', 'fertilizer', 'mix', 'root', 
+      'bait', 'potion', 'feed', 'box', 'chest'
+    ];
+
+    function isExcludedItem(itemName) {
+      if (!itemName) return true;
+      const lower = itemName.toLowerCase();
+      return EXCLUDED_KEYWORDS.some(kw => lower.includes(kw));
+    }
 
     const APPROVED_CROPS_AND_FRUITS = [
       "sunflower", "potato", "pumpkin", "carrot", "cabbage", "beetroot", 
@@ -386,6 +390,7 @@
       return APPROVED_CROPS_AND_FRUITS.includes(clean);
     }
 
+    // FIXED BETTY SHOP COIN PRICES
     const BETTY_SHOP_PRICES = {
       "sunflower": 0.02, "potato": 0.14, "rhubarb": 0.24, "pumpkin": 0.4,
       "zucchini": 0.4, "carrot": 0.8, "yam": 0.8, "cabbage": 1.5,
@@ -417,44 +422,58 @@
       updatePreHarvestUI();
       pruneOldSnapshots();
       renderSnapshotHistory();
+      loadPrices();
     });
 
     document.getElementById('farm-id').addEventListener('input', (e) => localStorage.setItem('sfl_farm_id', e.target.value));
     document.getElementById('api-key').addEventListener('input', (e) => localStorage.setItem('sfl_api_key', e.target.value));
 
-    // Fetch prices safely
-    fetch(`${BACKEND_URL}/api/get-data`)
-      .then(res => {
-        if (!res.ok) throw new Error('Price API error');
-        return res.json();
-      })
-      .then(rawData => {
-        allPrices = extractPrices(rawData);
-      })
-      .catch(() => {
-        allPrices = {
-          "Sunflower": 0.02, "Potato": 0.14, "Pumpkin": 0.4, "Carrot": 0.8,
-          "Cabbage": 1.5, "Beetroot": 2.8, "Cauliflower": 4.25, "Parsnip": 6.5,
-          "Eggplant": 8.0, "Corn": 9.0, "Radish": 9.5, "Wheat": 7.0, "Kale": 10.0
-        };
-      });
+    function loadPrices() {
+      fetch(`${BACKEND_URL}/api/get-data`)
+        .then(res => res.json())
+        .then(rawData => {
+          allPrices = extractPrices(rawData);
+        })
+        .catch(() => {
+          console.warn("Using default catalog prices.");
+        });
+    }
 
     function extractPrices(data) {
       let pricesMap = {};
-      function searchObj(obj, category = '') {
+      if (!data || typeof data !== 'object') return pricesMap;
+
+      function searchObj(obj, prefix = '') {
         for (let key in obj) {
+          if (!Object.prototype.hasOwnProperty.call(obj, key)) continue;
           let val = obj[key];
+          
+          if (isExcludedItem(key)) continue;
+
           if (typeof val === 'number') {
-            pricesMap[category + key] = val;
+            pricesMap[prefix + key] = val;
+          } else if (typeof val === 'string' && !isNaN(parseFloat(val))) {
+            pricesMap[prefix + key] = parseFloat(val);
           } else if (val && typeof val === 'object') {
-            let p = val.price || val.sfl || val.sflPrice || val.flowerPrice;
-            if (p !== undefined) pricesMap[category + key] = parseFloat(p);
-            else searchObj(val, key.length <= 4 ? `[${key.toUpperCase()}] ` : '');
+            let p = val.price ?? val.sfl ?? val.sflPrice ?? val.flowerPrice ?? val.unitPrice;
+            if (p !== undefined && p !== null) {
+              pricesMap[prefix + key] = parseFloat(p) || 0;
+            } else {
+              let newPrefix = key.length <= 4 ? `[${key.toUpperCase()}] ` : '';
+              searchObj(val, newPrefix);
+            }
           }
         }
       }
+
       searchObj(data);
       return pricesMap;
+    }
+
+    function formatFourDecimals(val) {
+      let num = typeof val === 'number' ? val : parseFloat(val);
+      if (isNaN(num)) return '0.0000';
+      return num.toFixed(4);
     }
 
     function roundUpToOneDecimal(val) {
@@ -488,7 +507,7 @@
       return 0;
     }
 
-    // MANUAL SYNC BUTTON (Sends Farm ID & API Key to Render Proxy)
+    // MANUAL SYNC BUTTON
     document.getElementById('import-farm-btn').addEventListener('click', async () => {
       const farmId = document.getElementById('farm-id').value.trim();
       const apiKey = document.getElementById('api-key').value.trim();
@@ -507,14 +526,11 @@
         
         const contentType = response.headers.get('content-type');
         if (!contentType || !contentType.includes('application/json')) {
-          throw new Error('Server returned HTML instead of JSON.');
+          throw new Error('Server returned HTML response.');
         }
 
         const data = await response.json();
-        
-        if (!response.ok) {
-          throw new Error(data.error || `HTTP Error ${response.status}`);
-        }
+        if (!response.ok) throw new Error(data.error || `HTTP Error ${response.status}`);
 
         const farmObj = data.farm?.farm || data.farm?.data || data.farm || data;
         farmInventoryData = farmObj?.inventory || {};
@@ -559,11 +575,6 @@
           body: JSON.stringify({ farmId: farmId })
         });
 
-        const contentType = response.headers.get('content-type');
-        if (!contentType || !contentType.includes('application/json')) {
-          throw new Error('Server returned HTML response.');
-        }
-
         const data = await response.json();
 
         if (data.success) {
@@ -582,23 +593,27 @@
     const input = document.getElementById('combobox-input');
     const menu = document.getElementById('combobox-menu');
 
+    // SEARCH & COMBOBOX: SHOWS 4 DECIMAL PLACES FOR FLOWER PRICES
     input.addEventListener('input', () => {
       const query = input.value.toLowerCase().trim();
       menu.innerHTML = '';
 
       const matches = Object.keys(allPrices)
         .filter(key => {
+          if (isExcludedItem(key)) return false;
           let cleanKey = key.replace(/^\[.*?\]\s*/, '');
           return cleanKey.toLowerCase().includes(query) || key.toLowerCase().includes(query);
         })
         .sort((a, b) => a.replace(/^\[.*?\]\s*/, '').localeCompare(b.replace(/^\[.*?\]\s*/, '')));
 
       if (matches.length === 0) {
-        menu.innerHTML = '<li class="p-2 text-sfl-woodLight italic">No items found</li>';
+        menu.innerHTML = '<li class="p-2 text-sfl-woodLight italic">No matching crops, fruits, or resources found</li>';
       } else {
         matches.forEach(item => {
           let displayName = item.replace(/^\[.*?\]\s*/, '');
           let stock = getItemStock(displayName);
+          let rawPrice = allPrices[item];
+          let formattedPrice = formatFourDecimals(rawPrice);
 
           let stockBadge = stock > 0 
             ? `<span class="text-[11px] font-bold text-sfl-green bg-green-100 border border-sfl-green/30 px-1.5 py-0.5 rounded ml-1.5">Qty: ${stock.toFixed(1)}</span>`
@@ -611,7 +626,7 @@
               <span class="font-bold text-sfl-dirt">${displayName}</span>
               ${stockBadge}
             </div>
-            <span class="text-sfl-green font-mono text-xs font-bold flex items-center gap-1">${allPrices[item]} ${FLOWER_ICON}</span>
+            <span class="text-sfl-green font-mono text-xs font-bold flex items-center gap-1">${formattedPrice} ${FLOWER_ICON}</span>
           `;
           li.addEventListener('click', () => selectItem(item, displayName));
           menu.appendChild(li);
@@ -638,7 +653,7 @@
 
       document.getElementById('selected-item-badge').classList.remove('hidden');
       document.getElementById('selected-item-name').textContent = cleanName;
-      document.getElementById('selected-item-price').innerHTML = `${allPrices[itemKey]} ${FLOWER_ICON}`;
+      document.getElementById('selected-item-price').innerHTML = `${formatFourDecimals(allPrices[itemKey])} ${FLOWER_ICON}`;
 
       let foundStock = getItemStock(cleanName);
 
@@ -771,7 +786,7 @@
       updateBasketTable();
     }
 
-    // --- PRE-HARVEST & HARVEST YIELD LOGIC ---
+    // --- HARVEST TRACKER LOGIC ---
 
     function updatePreHarvestUI() {
       const baseline = localStorage.getItem('sfl_pre_harvest_stock');
@@ -907,8 +922,6 @@
       renderSnapshotHistory();
       alert(`🎉 Harvest session logged! Total Harvest Yield: +${totalYieldCount.toFixed(1)} crops.`);
     });
-
-    // --- SNAPSHOT EDIT & DELETE FUNCTIONS ---
 
     function editSnapshotRow(date) {
       editingSnapshotDate = date;
@@ -1061,7 +1074,6 @@
       });
     }
 
-    // Export History
     document.getElementById('export-json-btn').addEventListener('click', () => {
       let history = localStorage.getItem('sfl_daily_snapshots') || '[]';
       let blob = new Blob([history], { type: 'application/json' });
@@ -1071,12 +1083,8 @@
       a.click();
     });
 
-    // Import JSON Handler
     const importFileInput = document.getElementById('import-file-input');
-
-    document.getElementById('import-json-btn').addEventListener('click', () => {
-      importFileInput.click();
-    });
+    document.getElementById('import-json-btn').addEventListener('click', () => importFileInput.click());
 
     importFileInput.addEventListener('change', (event) => {
       const file = event.target.files[0];
@@ -1108,7 +1116,6 @@
           currentHistory.sort((a, b) => new Date(b.date) - new Date(a.date));
 
           localStorage.setItem('sfl_daily_snapshots', JSON.stringify(currentHistory));
-          
           pruneOldSnapshots();
           renderSnapshotHistory();
           alert('✅ Successfully imported harvest history!');
