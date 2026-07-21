@@ -1,6 +1,5 @@
 const express = require('express');
 const cors = require('cors');
-const cron = require('node-cron');
 const axios = require('axios');
 
 const app = express();
@@ -9,9 +8,7 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-let registeredFarms = new Set();
-
-// Filter keywords to exclude seeds, tools, and consumables from search
+// Keywords to filter out seeds, tools, and non-sellable consumables
 const EXCLUDED_KEYWORDS = [
   'seed', 'axe', 'pickaxe', 'rod', 'shovel', 'drill', 
   'worm', 'wiggler', 'grub', 'fertilizer', 'mix', 'root', 
@@ -21,15 +18,15 @@ const EXCLUDED_KEYWORDS = [
 function isExcludedItem(itemName) {
   if (!itemName) return true;
   const lower = itemName.toLowerCase();
-  return EXCLUDED_KEYWORDS.some(keyword => lower.includes(keyword));
+  return EXCLUDED_KEYWORDS.some(kw => lower.includes(kw));
 }
 
 // Health Check
 app.get('/', (req, res) => {
-  res.send('🌻 SFL Calculator Backend Server is Active!');
+  res.send('🌻 SFL Resource Calculator Backend Active');
 });
 
-// Proxy Endpoint 1: Fetches farm inventory from Sunflower Land API
+// Proxy Endpoint 1: Fetches live farm inventory from SFL API
 app.get('/api/get-farm', async (req, res) => {
   const { farmId, apiKey } = req.query;
 
@@ -39,11 +36,11 @@ app.get('/api/get-farm', async (req, res) => {
 
   try {
     const headers = {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
       'Accept': 'application/json'
     };
 
-    if (apiKey) {
+    if (apiKey && apiKey !== 'undefined' && apiKey !== 'null') {
       headers['x-api-key'] = apiKey;
       headers['Authorization'] = `Bearer ${apiKey}`;
     }
@@ -55,16 +52,13 @@ app.get('/api/get-farm', async (req, res) => {
 
     return res.json(response.data);
   } catch (err) {
-    console.error(`[SFL API ERROR] Farm #${farmId}:`, err.response?.status, err.response?.data || err.message);
+    console.error(`[SFL API ERROR] Farm #${farmId}:`, err.response?.status, err.message);
 
     if (err.response?.status === 401) {
-      return res.status(401).json({ error: '401 Unauthorized: Valid API Key/Token required.' });
+      return res.status(401).json({ error: '401 Unauthorized: Valid API Key/Token required for this farm.' });
     }
     if (err.response?.status === 404) {
-      return res.status(404).json({ error: `Farm #${farmId} does not exist on Sunflower Land.` });
-    }
-    if (err.response?.status === 429) {
-      return res.status(429).json({ error: 'Rate limit reached. Please wait a minute.' });
+      return res.status(404).json({ error: `Farm #${farmId} does not exist.` });
     }
 
     return res.status(500).json({ 
@@ -73,9 +67,8 @@ app.get('/api/get-farm', async (req, res) => {
   }
 });
 
-// Proxy Endpoint 2: Fetches Live Market Prices from sfl.world API
+// Proxy Endpoint 2: Fetches Live Prices from sfl.world
 app.get('/api/get-data', async (req, res) => {
-  // Fallback catalog in case sfl.world is temporarily down
   const fallbackCatalog = {
     "Sunflower": 0.0002, "Potato": 0.0014, "Rhubarb": 0.0024, "Pumpkin": 0.0040, 
     "Zucchini": 0.0040, "Carrot": 0.0080, "Yam": 0.0080, "Cabbage": 0.0150, 
@@ -93,10 +86,7 @@ app.get('/api/get-data', async (req, res) => {
 
   try {
     const response = await axios.get('https://sfl.world/api/v1/prices', {
-      headers: { 
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)', 
-        'Accept': 'application/json' 
-      },
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)', 'Accept': 'application/json' },
       timeout: 8000
     });
 
@@ -113,39 +103,10 @@ app.get('/api/get-data', async (req, res) => {
       return res.json(filteredPrices);
     }
   } catch (err) {
-    console.log('[SFL.WORLD API WARNING] Live API fetch failed. Using fallback market prices:', err.message);
+    console.log('[PRICE API INFO] Serving fallback prices.');
   }
 
   return res.json(fallbackCatalog);
 });
 
-// API Endpoint: Register Auto Sync
-app.post('/api/register-auto-sync', (req, res) => {
-  const { farmId } = req.body;
-  if (!farmId) return res.status(400).json({ success: false, error: 'Farm ID is required.' });
-
-  registeredFarms.add(String(farmId));
-  return res.json({ success: true, message: `Farm #${farmId} registered for daily 00:00 UTC sync!` });
-});
-
-// API Endpoint: Unregister Auto Sync
-app.post('/api/unregister-auto-sync', (req, res) => {
-  const { farmId } = req.body;
-  if (farmId) registeredFarms.delete(String(farmId));
-  return res.json({ success: true });
-});
-
-// Daily Cron Job (00:00 UTC)
-cron.schedule('0 0 * * *', async () => {
-  for (const farmId of registeredFarms) {
-    try {
-      await axios.get(`https://api.sunflower-land.com/community/farms/${farmId}`, {
-        headers: { 'User-Agent': 'Mozilla/5.0' }
-      });
-    } catch (err) {
-      console.error(`❌ [CRON SYNC ERROR] Farm #${farmId}: ${err.message}`);
-    }
-  }
-}, { timezone: "UTC" });
-
-app.listen(PORT, () => console.log(`🚀 SFL Backend Server listening on port ${PORT}`));
+app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
