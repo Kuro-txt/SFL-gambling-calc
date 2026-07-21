@@ -6,19 +6,19 @@ const axios = require('axios');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Enable Cross-Origin Resource Sharing (CORS) for all origins
+// Enable Cross-Origin Resource Sharing (CORS) for all domains
 app.use(cors());
 app.use(express.json());
 
 // In-memory list of registered farm IDs for auto-sync
 let registeredFarms = new Set();
 
-// Health check route
+// Health check endpoint
 app.get('/', (req, res) => {
   res.send('🌻 SFL Calculator Backend Server is Active!');
 });
 
-// Proxy Endpoint: Fetches live farm data to bypass browser CORS rules
+// Proxy Endpoint: Bypasses browser CORS rules by fetching live farm inventory on server-side
 app.get('/api/get-farm', async (req, res) => {
   const { farmId } = req.query;
 
@@ -27,9 +27,18 @@ app.get('/api/get-farm', async (req, res) => {
   }
 
   try {
-    const response = await axios.get(`https://api.sunflower-land.com/community/farms/${farmId}`);
+    const response = await axios.get(`https://api.sunflower-land.com/community/farms/${farmId}`, {
+      headers: {
+        'User-Agent': 'SFL-Calculator-App/1.0'
+      }
+    });
+
     return res.json(response.data);
   } catch (err) {
+    if (err.response && err.response.status === 404) {
+      console.error(`[PROXY 404] Farm #${farmId} not found on Sunflower Land API.`);
+      return res.status(404).json({ error: `Farm #${farmId} not found.` });
+    }
     console.error(`[PROXY ERROR] Farm #${farmId}:`, err.message);
     return res.status(500).json({ error: 'Failed to fetch farm data from Sunflower Land API.' });
   }
@@ -69,10 +78,7 @@ cron.schedule('0 0 * * *', async () => {
   for (const farmId of registeredFarms) {
     try {
       console.log(`⏳ Auto-syncing Farm #${farmId}...`);
-      const response = await axios.get(
-        `https://api.sunflower-land.com/community/farms/${farmId}`
-      );
-      
+      await axios.get(`https://api.sunflower-land.com/community/farms/${farmId}`);
       console.log(`✅ [SYNC SUCCESS] Farm #${farmId} synced successfully.`);
     } catch (err) {
       console.error(`❌ [SYNC ERROR] Farm #${farmId}: ${err.message}`);
@@ -85,5 +91,4 @@ cron.schedule('0 0 * * *', async () => {
 // Start Express Server
 app.listen(PORT, () => {
   console.log(`🚀 SFL Backend Server listening on port ${PORT}`);
-});
 });
