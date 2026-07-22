@@ -6,6 +6,8 @@
   <title>SFL Resource Calculator</title>
   <link href="https://fonts.googleapis.com/css2?family=VT323&family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Supabase CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
     tailwind.config = {
       theme: {
@@ -63,7 +65,6 @@
       flex-shrink: 0;
     }
 
-    /* HIDE NUMBER INPUT ARROWS/SPINNERS */
     input[type=number]::-webkit-inner-spin-button, 
     input[type=number]::-webkit-outer-spin-button { 
       -webkit-appearance: none; 
@@ -78,6 +79,28 @@
 
   <div class="w-full max-w-5xl sfl-panel rounded-2xl p-6 sm:p-8 relative space-y-6">
     
+    <!-- Account Sign-In / Sync Bar -->
+    <div id="auth-panel" class="bg-sfl-wood text-amber-100 p-3 rounded-xl border-2 border-sfl-dirt flex flex-col sm:flex-row justify-between items-center gap-3 shadow-md">
+      <div id="auth-logged-out" class="w-full flex flex-col sm:flex-row items-center justify-between gap-2">
+        <span class="text-xs font-bold text-amber-200 flex items-center gap-1.5">
+          <span>☁️</span> Multi-Device Sync: Log in to save settings & snapshots across devices
+        </span>
+        <div class="flex items-center gap-2 w-full sm:w-auto">
+          <input type="email" id="auth-email" placeholder="Email" class="sfl-input px-2 py-1 text-xs text-sfl-dirt rounded w-full sm:w-36">
+          <input type="password" id="auth-password" placeholder="Password" class="sfl-input px-2 py-1 text-xs text-sfl-dirt rounded w-full sm:w-32">
+          <button id="btn-login" class="bg-sfl-green text-white font-bold px-3 py-1 rounded text-xs hover:bg-green-700 transition whitespace-nowrap">Sign In</button>
+          <button id="btn-signup" class="bg-amber-600 text-white font-bold px-3 py-1 rounded text-xs hover:bg-amber-700 transition whitespace-nowrap">Sign Up</button>
+        </div>
+      </div>
+
+      <div id="auth-logged-in" class="hidden w-full flex justify-between items-center">
+        <span class="text-xs font-bold text-amber-300 flex items-center gap-1.5">
+          <span>✅</span> Logged in as: <span id="user-email-display" class="text-white font-semibold"></span>
+        </span>
+        <button id="btn-logout" class="bg-sfl-accent text-white font-bold px-3 py-1 rounded text-xs hover:bg-red-700 transition">Sign Out</button>
+      </div>
+    </div>
+
     <!-- Header -->
     <div class="text-center space-y-1">
       <div class="inline-block bg-sfl-wood text-amber-200 border-2 border-sfl-dirt px-6 py-1.5 rounded-full shadow-md">
@@ -87,7 +110,6 @@
       </div>
       <p class="text-xs font-semibold text-sfl-woodLight">Live SFL market prices & farm inventory tool</p>
 
-      <!-- Advice Banner for Mobile Users -->
       <div class="inline-flex items-center gap-1.5 bg-amber-100/90 border border-sfl-cardBorder/80 px-3 py-1 rounded-lg text-[11px] font-bold text-sfl-wood mt-1 shadow-sm">
         <span>🖥️</span> <span>Tip: Use <strong>Desktop Mode</strong> on mobile browsers for the best view & layout experience!</span>
       </div>
@@ -290,22 +312,19 @@
         </p>
         <ul class="list-disc list-inside space-y-1 text-[11px] text-sfl-woodLight font-medium pl-1">
           <li>
-            <strong>Item Selection:</strong> Snapshots read all crops, fruits & resources directly from your <strong>Farm Basket</strong> (if added)!
+            <strong>Automatic 00:00 UTC Snapshot:</strong> When signed in, our server automatically records your farm stock at 00:00 UTC every night!
           </li>
           <li>
-            <strong>🌅 Recommended Workflow (Morning):</strong> Sync your farm (or populate your basket) and click <span class="text-amber-800 font-bold">"🚩 1. Save Pre-Harvest Stock"</span> to lock in your baseline before harvesting or gathering.
+            <strong>Manual Baseline:</strong> You can also manually click <span class="text-amber-800 font-bold">"🚩 1. Save Pre-Harvest Stock"</span> anytime before harvesting.
           </li>
           <li>
-            <strong>🌙 Recommended Workflow (Night):</strong> At the end of the day after harvesting, sync your farm again (or add new totals to the basket) and click <span class="text-sfl-green font-bold">"🏁 2. Calculate Harvest Yield"</span>.
-          </li>
-          <li>
-            <strong>Single Daily Snapshot:</strong> Multiple harvests/sessions throughout the day automatically merge into today's single cumulative snapshot row!
+            <strong>Daily Calculation:</strong> After playing in-game, sync your farm and click <span class="text-sfl-green font-bold">"🏁 2. Calculate Harvest Yield"</span> to log your net earnings.
           </li>
         </ul>
       </div>
 
       <div id="pre-harvest-status" class="hidden bg-amber-100/80 border border-amber-400 p-2 rounded-lg text-xs font-bold text-amber-900 flex justify-between items-center">
-        <span>🚩 Pre-Harvest Baseline Saved (<span id="pre-harvest-time"></span>)</span>
+        <span>🚩 Pre-Harvest Baseline Active (<span id="pre-harvest-time">Today</span>)</span>
         <button id="clear-pre-harvest-btn" class="text-[10px] bg-sfl-accent text-white px-2 py-0.5 rounded font-bold">Clear Baseline</button>
       </div>
 
@@ -323,7 +342,7 @@
           <tbody id="snapshot-history-body" class="divide-y divide-sfl-cardBorder/40 font-medium">
             <tr>
               <td colspan="5" class="px-4 py-6 text-center text-sfl-woodLight italic">
-                No harvest sessions logged yet! Click "1. Save Pre-Harvest Stock" before harvesting.
+                No harvest sessions logged yet!
               </td>
             </tr>
           </tbody>
@@ -334,8 +353,18 @@
   </div>
 
   <script>
+    // --- SUPABASE CONFIGURATION ---
+    const SUPABASE_URL = "https://gtvglgeoznnrsdcfazpc.supabase.co"; 
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0dmdsZ2Vvem5ucnNkY2ZhenBjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ3MTA4NzIsImV4cCI6MjEwMDI4Njg3Mn0.oKTNu5vXA2hJ4p9D-unvkeiF7tEyu1_PFVgnEigmKoo"; // <-- PASTE YOUR anon KEY HERE
+
     const BACKEND_URL = "https://sfl-calculator-backend.onrender.com";
 
+    let supabase = null;
+    if (typeof window.supabase !== 'undefined' && SUPABASE_ANON_KEY !== "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0dmdsZ2Vvem5ucnNkY2ZhenBjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ3MTA4NzIsImV4cCI6MjEwMDI4Njg3Mn0.oKTNu5vXA2hJ4p9D-unvkeiF7tEyu1_PFVgnEigmKoo") {
+      supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    }
+
+    let currentUser = null;
     let allPrices = {};
     let basket = [];
     let selectedItemKey = null;
@@ -380,7 +409,8 @@
       return BETTY_SHOP_PRICES[clean] !== undefined ? BETTY_SHOP_PRICES[clean] : null;
     }
 
-    document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', async () => {
+      // Local Storage Fallbacks
       const savedFarmId = localStorage.getItem('sfl_farm_id');
       const savedApiKey = localStorage.getItem('sfl_api_key');
       const savedTaxRate = localStorage.getItem('sfl_tax_rate');
@@ -390,13 +420,108 @@
       if (savedApiKey) document.getElementById('api-key').value = savedApiKey;
       if (savedTaxRate !== null) document.getElementById('tax-select').value = savedTaxRate;
       if (savedCoinRatio !== null) document.getElementById('coin-ratio').value = savedCoinRatio;
-      
-      updatePreHarvestUI();
-      renderSnapshotHistory();
+
+      initAuth();
       loadPrices();
     });
 
-    document.getElementById('farm-id').addEventListener('input', (e) => localStorage.setItem('sfl_farm_id', e.target.value));
+    // --- AUTH & SUPABASE SYNC ---
+    async function initAuth() {
+      if (!supabase) return;
+
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        setLoggedInUser(session.user);
+      }
+
+      supabase.auth.onAuthStateChange((_event, session) => {
+        if (session) {
+          setLoggedInUser(session.user);
+        } else {
+          setLoggedOutUser();
+        }
+      });
+    }
+
+    function setLoggedInUser(user) {
+      currentUser = user;
+      document.getElementById('auth-logged-out').classList.add('hidden');
+      document.getElementById('auth-logged-in').classList.remove('hidden');
+      document.getElementById('user-email-display').textContent = user.email;
+      loadCloudUserData();
+    }
+
+    function setLoggedOutUser() {
+      currentUser = null;
+      document.getElementById('auth-logged-out').classList.remove('hidden');
+      document.getElementById('auth-logged-in').classList.add('hidden');
+      renderSnapshotHistory();
+    }
+
+    document.getElementById('btn-login').addEventListener('click', async () => {
+      const email = document.getElementById('auth-email').value.trim();
+      const password = document.getElementById('auth-password').value.trim();
+      if (!email || !password) return alert("Please enter email and password.");
+
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) alert("Login Error: " + error.message);
+    });
+
+    document.getElementById('btn-signup').addEventListener('click', async () => {
+      const email = document.getElementById('auth-email').value.trim();
+      const password = document.getElementById('auth-password').value.trim();
+      const farmId = document.getElementById('farm-id').value.trim();
+
+      if (!email || !password) return alert("Please enter email and password.");
+      if (!farmId) return alert("Please enter your Farm ID first so we can link your farm!");
+
+      const { data, error } = await supabase.auth.signUp({ email, password });
+      if (error) return alert("Sign Up Error: " + error.message);
+
+      if (data.user) {
+        await supabase.from('profiles').upsert({ id: data.user.id, farm_id: farmId });
+        alert("🎉 Account created & Farm ID linked successfully!");
+      }
+    });
+
+    document.getElementById('btn-logout').addEventListener('click', async () => {
+      if (supabase) await supabase.auth.signOut();
+    });
+
+    async function loadCloudUserData() {
+      if (!currentUser || !supabase) return;
+
+      // 1. Fetch Profile (Farm ID)
+      const { data: profile } = await supabase.from('profiles').select('farm_id').eq('id', currentUser.id).single();
+      if (profile && profile.farm_id) {
+        document.getElementById('farm-id').value = profile.farm_id;
+        localStorage.setItem('sfl_farm_id', profile.farm_id);
+      }
+
+      // 2. Fetch Daily Yields History
+      const { data: yields } = await supabase.from('daily_yields').select('*').eq('user_id', currentUser.id).order('yield_date', { ascending: false });
+      if (yields && yields.length > 0) {
+        let history = yields.map(y => ({
+          date: y.yield_date,
+          totalCount: parseFloat(y.total_count),
+          netFlowers: y.net_flowers,
+          crops: y.crops
+        }));
+        localStorage.setItem('sfl_daily_snapshots', JSON.stringify(history));
+      }
+
+      renderSnapshotHistory();
+      updatePreHarvestUI();
+    }
+
+    document.getElementById('farm-id').addEventListener('input', async (e) => {
+      const farmId = e.target.value.trim();
+      localStorage.setItem('sfl_farm_id', farmId);
+      if (currentUser && supabase && farmId) {
+        await supabase.from('profiles').upsert({ id: currentUser.id, farm_id: farmId });
+      }
+    });
+
     document.getElementById('api-key').addEventListener('input', (e) => localStorage.setItem('sfl_api_key', e.target.value));
 
     document.getElementById('tax-select').addEventListener('change', (e) => {
@@ -486,7 +611,6 @@
       return 0;
     }
 
-    // 20-SECOND COOLDOWN SYNC BUTTON
     function startSyncCooldown() {
       const syncBtn = document.getElementById('import-farm-btn');
       let timeLeft = 20;
@@ -742,11 +866,24 @@
       updateBasketTable();
     }
 
-    // --- HARVEST TRACKER LOGIC ---
+    // --- HARVEST TRACKER & PRE-HARVEST LOGIC ---
 
-    function updatePreHarvestUI() {
-      const baseline = localStorage.getItem('sfl_pre_harvest_stock');
+    async function updatePreHarvestUI() {
       const container = document.getElementById('pre-harvest-status');
+      
+      // Check Cloud Base first
+      if (currentUser && supabase) {
+        const todayDate = new Date().toISOString().split('T')[0];
+        const { data } = await supabase.from('preharvest_baselines').select('created_at').eq('user_id', currentUser.id).eq('snapshot_date', todayDate).single();
+        if (data) {
+          document.getElementById('pre-harvest-time').textContent = "00:00 UTC Cloud Auto-Baseline";
+          container.classList.remove('hidden');
+          return;
+        }
+      }
+
+      // Check Local Base
+      const baseline = localStorage.getItem('sfl_pre_harvest_stock');
       if (baseline) {
         const data = JSON.parse(baseline);
         document.getElementById('pre-harvest-time').textContent = data.timestamp;
@@ -756,7 +893,7 @@
       }
     }
 
-    document.getElementById('save-pre-harvest-btn').addEventListener('click', () => {
+    document.getElementById('save-pre-harvest-btn').addEventListener('click', async () => {
       let baselineStock = {};
       
       if (basket.length > 0) {
@@ -783,10 +920,21 @@
         return;
       }
 
+      const todayDate = new Date().toISOString().split('T')[0];
       const preHarvestPayload = {
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         stock: baselineStock
       };
+
+      if (currentUser && supabase) {
+        const farmId = document.getElementById('farm-id').value.trim();
+        await supabase.from('preharvest_baselines').upsert({
+          user_id: currentUser.id,
+          farm_id: farmId,
+          snapshot_date: todayDate,
+          stock: baselineStock
+        }, { onConflict: 'user_id,snapshot_date' });
+      }
 
       localStorage.setItem('sfl_pre_harvest_stock', JSON.stringify(preHarvestPayload));
       updatePreHarvestUI();
@@ -798,16 +946,30 @@
       updatePreHarvestUI();
     });
 
-    document.getElementById('log-yield-btn').addEventListener('click', () => {
-      const preHarvestRaw = localStorage.getItem('sfl_pre_harvest_stock');
-      if (!preHarvestRaw) {
-        alert("⚠️ Click '1. Save Pre-Harvest Stock' FIRST before calculating harvest yield!");
+    document.getElementById('log-yield-btn').addEventListener('click', async () => {
+      let preHarvestData = null;
+      const todayDate = new Date().toISOString().split('T')[0];
+
+      // 1. Try to fetch 00:00 UTC cloud baseline first
+      if (currentUser && supabase) {
+        const { data } = await supabase.from('preharvest_baselines').select('stock').eq('user_id', currentUser.id).eq('snapshot_date', todayDate).single();
+        if (data && data.stock) {
+          preHarvestData = data.stock;
+        }
+      }
+
+      // 2. Fallback to manual local pre-harvest baseline
+      if (!preHarvestData) {
+        const preHarvestRaw = localStorage.getItem('sfl_pre_harvest_stock');
+        if (preHarvestRaw) preHarvestData = JSON.parse(preHarvestRaw).stock;
+      }
+
+      if (!preHarvestData) {
+        alert("⚠️ Click '1. Save Pre-Harvest Stock' FIRST or wait for the 00:00 UTC automatic snapshot before calculating harvest yield!");
         return;
       }
 
-      const preHarvestData = JSON.parse(preHarvestRaw).stock;
       const taxRate = parseFloat(document.getElementById('tax-select').value) || 0;
-
       let postHarvestStock = {};
 
       if (basket.length > 0) {
@@ -850,15 +1012,15 @@
         return;
       }
 
-      const todayDate = new Date().toISOString().split('T')[0];
       let history = JSON.parse(localStorage.getItem('sfl_daily_snapshots') || '[]');
-
       let existingDayIndex = history.findIndex(entry => entry.date === todayDate);
 
-      if (existingDayIndex >= 0) {
-        let existingEntry = history[existingDayIndex];
-        let cropsArray = existingEntry.crops || [];
+      let cropsArray = [];
+      let grandCount = 0;
+      let grandFlowers = 0;
 
+      if (existingDayIndex >= 0) {
+        cropsArray = history[existingDayIndex].crops || [];
         Object.keys(newYieldsMap).forEach(itemName => {
           let existingItem = cropsArray.find(c => c.name.toLowerCase() === itemName.toLowerCase());
           if (existingItem) {
@@ -873,8 +1035,6 @@
           }
         });
 
-        let grandCount = 0;
-        let grandFlowers = 0;
         cropsArray.forEach(c => {
           grandCount += c.qty;
           grandFlowers += c.flowers;
@@ -886,13 +1046,7 @@
           crops: cropsArray,
           netFlowers: roundUpToThreeDecimals(grandFlowers).toFixed(3)
         };
-
-        alert(`🎉 Updated today's snapshot (${todayDate}) with the new session yield!`);
       } else {
-        let cropsArray = [];
-        let grandCount = 0;
-        let grandFlowers = 0;
-
         Object.keys(newYieldsMap).forEach(itemName => {
           cropsArray.push({
             name: itemName,
@@ -903,24 +1057,33 @@
           grandFlowers += newYieldsMap[itemName].flowers;
         });
 
-        const newEntry = {
+        history.unshift({
           date: todayDate,
           totalCount: roundUpToOneDecimal(grandCount),
           crops: cropsArray,
           netFlowers: roundUpToThreeDecimals(grandFlowers).toFixed(3)
-        };
+        });
+      }
 
-        history.unshift(newEntry);
-        alert(`🎉 Logged harvest yield for ${todayDate}!`);
+      // Save to Supabase Cloud if signed in
+      if (currentUser && supabase) {
+        await supabase.from('daily_yields').upsert({
+          user_id: currentUser.id,
+          yield_date: todayDate,
+          total_count: roundUpToOneDecimal(grandCount),
+          net_flowers: roundUpToThreeDecimals(grandFlowers),
+          crops: cropsArray
+        }, { onConflict: 'user_id,yield_date' });
       }
 
       localStorage.setItem('sfl_daily_snapshots', JSON.stringify(history));
       localStorage.removeItem('sfl_pre_harvest_stock');
       updatePreHarvestUI();
       renderSnapshotHistory();
+      alert(`🎉 Logged harvest yield for ${todayDate}!`);
     });
 
-    // --- EDITING LOGIC FOR SNAPSHOT ROWS ---
+    // --- EDITING & DELETING SNAPSHOTS ---
 
     function editSnapshotRow(date) {
       editingSnapshotDate = date;
@@ -932,7 +1095,7 @@
       renderSnapshotHistory();
     }
 
-    function saveEditedSnapshot(date) {
+    async function saveEditedSnapshot(date) {
       let history = JSON.parse(localStorage.getItem('sfl_daily_snapshots') || '[]');
       let entryIndex = history.findIndex(item => item.date === date);
 
@@ -979,16 +1142,31 @@
         netFlowers: roundUpToThreeDecimals(grandNetFlowers).toFixed(3)
       };
 
+      if (currentUser && supabase) {
+        await supabase.from('daily_yields').upsert({
+          user_id: currentUser.id,
+          yield_date: date,
+          total_count: roundUpToOneDecimal(grandTotalCount),
+          net_flowers: roundUpToThreeDecimals(grandNetFlowers),
+          crops: updatedCrops
+        }, { onConflict: 'user_id,yield_date' });
+      }
+
       localStorage.setItem('sfl_daily_snapshots', JSON.stringify(history));
       editingSnapshotDate = null;
       renderSnapshotHistory();
       alert(`✅ Harvest record for ${date} updated!`);
     }
 
-    function deleteSnapshotRow(date) {
+    async function deleteSnapshotRow(date) {
       if (!confirm(`Delete snapshot record for ${date}?`)) return;
       let history = JSON.parse(localStorage.getItem('sfl_daily_snapshots') || '[]');
       localStorage.setItem('sfl_daily_snapshots', JSON.stringify(history.filter(i => i.date !== date)));
+
+      if (currentUser && supabase) {
+        await supabase.from('daily_yields').delete().eq('user_id', currentUser.id).eq('yield_date', date);
+      }
+
       if (editingSnapshotDate === date) editingSnapshotDate = null;
       renderSnapshotHistory();
     }
@@ -998,7 +1176,7 @@
       let history = JSON.parse(localStorage.getItem('sfl_daily_snapshots') || '[]');
 
       if (history.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" class="px-4 py-6 text-center text-sfl-woodLight italic">No harvest sessions logged yet! Click "1. Save Pre-Harvest Stock" before harvesting.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="5" class="px-4 py-6 text-center text-sfl-woodLight italic">No harvest sessions logged yet!</td></tr>`;
         return;
       }
 
