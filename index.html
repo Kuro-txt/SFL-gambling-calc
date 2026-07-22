@@ -456,11 +456,20 @@
       });
     }
 
-    function setLoggedInUser(user) {
+    async function setLoggedInUser(user) {
       currentUser = user;
       document.getElementById('auth-logged-out').classList.add('hidden');
       document.getElementById('auth-logged-in').classList.remove('hidden');
       document.getElementById('user-email-display').textContent = user.email;
+
+      // Auto-save/sync profile if farm ID is already typed
+      const currentFarmId = document.getElementById('farm-id').value.trim();
+      if (currentFarmId && supabaseClient) {
+        await supabaseClient
+          .from('profiles')
+          .upsert({ id: user.id, farm_id: currentFarmId }, { onConflict: 'id' });
+      }
+
       loadCloudUserData();
     }
 
@@ -504,7 +513,7 @@
       } else if (data.user) {
         const { error: profileErr } = await supabaseClient
           .from('profiles')
-          .upsert({ id: data.user.id, farm_id: farmId });
+          .upsert({ id: data.user.id, farm_id: farmId }, { onConflict: 'id' });
 
         if (profileErr) {
           console.error("Profile link error:", profileErr.message);
@@ -559,7 +568,7 @@
       const farmId = e.target.value.trim();
       localStorage.setItem('sfl_farm_id', farmId);
       if (currentUser && supabaseClient && farmId) {
-        await supabaseClient.from('profiles').upsert({ id: currentUser.id, farm_id: farmId });
+        await supabaseClient.from('profiles').upsert({ id: currentUser.id, farm_id: farmId }, { onConflict: 'id' });
       }
     });
 
