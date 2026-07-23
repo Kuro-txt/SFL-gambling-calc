@@ -1,5 +1,3 @@
-
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1037,6 +1035,7 @@
       let preHarvestData = null;
       const todayDate = new Date().toISOString().split('T')[0];
 
+      // 1. Prefer Manual baseline if saved locally, otherwise fallback to Supabase Cloud baseline
       const preHarvestRaw = localStorage.getItem('sfl_pre_harvest_stock');
       if (preHarvestRaw) {
         preHarvestData = JSON.parse(preHarvestRaw).stock;
@@ -1110,50 +1109,28 @@
       let grandCount = 0;
       let grandFlowers = 0;
 
+      // 2. Direct Overwrite Logic (Calculates total delta directly from baseline without compounding/doubling)
+      Object.keys(newYieldsMap).forEach(itemName => {
+        cropsArray.push({
+          name: itemName,
+          qty: newYieldsMap[itemName].qty,
+          flowers: newYieldsMap[itemName].flowers
+        });
+        grandCount += newYieldsMap[itemName].qty;
+        grandFlowers += newYieldsMap[itemName].flowers;
+      });
+
+      const updatedDailyEntry = {
+        date: todayDate,
+        totalCount: roundUpToOneDecimal(grandCount),
+        crops: cropsArray,
+        netFlowers: roundUpToThreeDecimals(grandFlowers).toFixed(3)
+      };
+
       if (existingDayIndex >= 0) {
-        cropsArray = history[existingDayIndex].crops || [];
-        Object.keys(newYieldsMap).forEach(itemName => {
-          let existingItem = cropsArray.find(c => c.name.toLowerCase() === itemName.toLowerCase());
-          if (existingItem) {
-            existingItem.qty = roundUpToOneDecimal(existingItem.qty + newYieldsMap[itemName].qty);
-            existingItem.flowers = roundUpToThreeDecimals(existingItem.flowers + newYieldsMap[itemName].flowers);
-          } else {
-            cropsArray.push({
-              name: itemName,
-              qty: newYieldsMap[itemName].qty,
-              flowers: newYieldsMap[itemName].flowers
-            });
-          }
-        });
-
-        cropsArray.forEach(c => {
-          grandCount += c.qty;
-          grandFlowers += c.flowers;
-        });
-
-        history[existingDayIndex] = {
-          date: todayDate,
-          totalCount: roundUpToOneDecimal(grandCount),
-          crops: cropsArray,
-          netFlowers: roundUpToThreeDecimals(grandFlowers).toFixed(3)
-        };
+        history[existingDayIndex] = updatedDailyEntry;
       } else {
-        Object.keys(newYieldsMap).forEach(itemName => {
-          cropsArray.push({
-            name: itemName,
-            qty: newYieldsMap[itemName].qty,
-            flowers: newYieldsMap[itemName].flowers
-          });
-          grandCount += newYieldsMap[itemName].qty;
-          grandFlowers += newYieldsMap[itemName].flowers;
-        });
-
-        history.unshift({
-          date: todayDate,
-          totalCount: roundUpToOneDecimal(grandCount),
-          crops: cropsArray,
-          netFlowers: roundUpToThreeDecimals(grandFlowers).toFixed(3)
-        });
+        history.unshift(updatedDailyEntry);
       }
 
       if (currentUser && supabaseClient) {
@@ -1170,7 +1147,7 @@
       localStorage.removeItem('sfl_pre_harvest_stock');
       updatePreHarvestUI();
       renderSnapshotHistory();
-      alert(`🎉 Logged harvest yield for ${todayDate}!`);
+      alert(`🎉 Calculated harvest yield for ${todayDate}!`);
     });
 
     function editSnapshotRow(date) {
