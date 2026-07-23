@@ -1,4 +1,4 @@
-// --- GLOBAL APP STATE & SUPABASE CONFIGURATION ---
+// --- GLOBAL APP STATE & CONFIGURATION ---
 const SUPABASE_URL = "https://gtvglgeoznnrsdcfazpc.supabase.co"; 
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0dmdsZ2Vvem5ucnNkY2ZhenBjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ3MTA4NzIsImV4cCI6MjEwMDI4Njg3Mn0.oKTNu5vXA2hJ4p9D-unvkeiF7tEyu1_PFVgnEigmKoo";
 const BACKEND_URL = "https://sfl-calculator-backend.onrender.com";

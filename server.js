@@ -9,14 +9,14 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-// Initialize Supabase Admin Client using service_role key to bypass RLS for cron jobs
+// Initialize Supabase Admin Client
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const supabaseAdmin = (supabaseUrl && supabaseServiceKey) 
   ? createClient(supabaseUrl, supabaseServiceKey) 
   : null;
 
-// Keywords to filter out seeds, tools, and non-sellable consumables
+// Excluded Keywords Filter
 const EXCLUDED_KEYWORDS = [
   'seed', 'axe', 'pickaxe', 'rod', 'shovel', 'drill', 
   'worm', 'wiggler', 'grub', 'fertilizer', 'mix', 
@@ -29,7 +29,6 @@ function isExcludedItem(itemName) {
   return EXCLUDED_KEYWORDS.some(kw => lower.includes(kw));
 }
 
-// Helper function to pause execution between requests to prevent HTTP 429 Rate Limits
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // Health Check
@@ -47,7 +46,7 @@ app.get('/api/get-farm', async (req, res) => {
 
   try {
     const headers = {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
       'Accept': 'application/json'
     };
 
@@ -70,7 +69,7 @@ app.get('/api/get-farm', async (req, res) => {
 
     if (err.response?.status === 429) {
       return res.status(429).json({ 
-        error: '⚠️ Server API rate limit reached! Please wait a few minutes, or paste your own personal SFL API Key above to sync immediately.' 
+        error: '⚠️ Server API rate limit reached! Please wait a few minutes, or paste your personal SFL API Key.' 
       });
     }
 
@@ -130,14 +129,67 @@ app.get('/api/get-data', async (req, res) => {
   return res.json(fallbackCatalog);
 });
 
-// CRON ENDPOINT: Triggered at 00:00 UTC to save Pre-Harvest Baseline for all registered users
+// Proxy Endpoint 3: Live NFT Catalog (Flattens all nested categories)
+app.get('/api/nfts', async (req, res) => {
+  try {
+    const response = await axios.get('https://sfl.world/api/v1/nfts', {
+      headers: { 
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36', 
+        'Accept': 'application/json, text/plain, */*',
+        'Referer': 'https://sfl.world/'
+      },
+      timeout: 12000
+    });
+
+    const rawData = response.data;
+    let itemsList = [];
+
+    // Recursive extractor to flatten nested categories
+    function extractItems(node) {
+      if (!node) return;
+      if (Array.isArray(node)) {
+        node.forEach(extractItems);
+      } else if (typeof node === 'object') {
+        if (node.name || node.title) {
+          const name = node.name || node.title;
+          const price = parseFloat(node.floor ?? node.price ?? node.lastSalePrice ?? 0) || 0;
+          const boost = node.boost_text || node.boost || (node.have_boost ? "Boost Active" : "No Boost");
+
+          itemsList.push({
+            name: String(name).trim(),
+            price: price,
+            boost: String(boost).trim()
+          });
+        } else {
+          Object.values(node).forEach(extractItems);
+        }
+      }
+    }
+
+    extractItems(rawData);
+
+    // Deduplicate by item name
+    const uniqueMap = new Map();
+    itemsList.forEach(item => {
+      if (!uniqueMap.has(item.name.toLowerCase())) {
+        uniqueMap.set(item.name.toLowerCase(), item);
+      }
+    });
+
+    return res.json(Array.from(uniqueMap.values()));
+  } catch (err) {
+    console.error('[NFT API ERROR]:', err.message);
+    return res.status(500).json({ error: `Failed to fetch NFTs from sfl.world: ${err.message}` });
+  }
+});
+
+// CRON ENDPOINT: Daily Snapshot Trigger
 app.get('/api/trigger-daily-baseline', async (req, res) => {
   if (!supabaseAdmin) {
-    return res.status(500).json({ error: 'Supabase admin client not initialized on server. Check SUPABASE_SERVICE_ROLE_KEY environment variable.' });
+    return res.status(500).json({ error: 'Supabase admin client not initialized on server.' });
   }
 
   try {
-    // 1. Fetch all registered user profiles from Supabase
     const { data: profiles, error: profileErr } = await supabaseAdmin
       .from('profiles')
       .select('id, farm_id')
@@ -152,7 +204,6 @@ app.get('/api/trigger-daily-baseline', async (req, res) => {
     let successCount = 0;
     let errors = [];
 
-    // 2. Loop through each registered user farm and record baseline
     for (const profile of profiles) {
       try {
         if (!profile.farm_id) continue;
@@ -168,7 +219,6 @@ app.get('/api/trigger-daily-baseline', async (req, res) => {
           timeout: 8000
         });
 
-        // Robust multi-path inventory extraction to support all SFL API response formats
         const data = response.data;
         const rawInventory = 
           data?.inventory || 
@@ -189,9 +239,6 @@ app.get('/api/trigger-daily-baseline', async (req, res) => {
           }
         }
 
-        console.log(`[SNAPSHOT DEBUG] Farm #${profile.farm_id} extracted ${Object.keys(cleanBaseline).length} items.`);
-
-        // Save baseline record directly into Supabase
         const { error: insertErr } = await supabaseAdmin
           .from('preharvest_baselines')
           .upsert({
@@ -208,7 +255,6 @@ app.get('/api/trigger-daily-baseline', async (req, res) => {
         errors.push({ farm_id: profile.farm_id, error: err.message });
       }
 
-      // Pause 1.2 seconds between requests to avoid hitting SFL API 429 rate limits
       await sleep(1200);
     }
 

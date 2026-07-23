@@ -1,4 +1,4 @@
-// --- LIVE PRICES, FARM SYNC, COMBOBOX & BASKET LOGIC ---
+//// --- LIVE PRICES, FARM SYNC, COMBOBOX & BASKET LOGIC ---
 document.addEventListener('DOMContentLoaded', () => {
   const savedTaxRate = localStorage.getItem('sfl_tax_rate');
   const savedCoinRatio = localStorage.getItem('sfl_coin_ratio');
@@ -17,6 +17,7 @@ document.getElementById('tax-select').addEventListener('change', (e) => {
 document.getElementById('coin-ratio').addEventListener('input', (e) => {
   localStorage.setItem('sfl_coin_ratio', e.target.value);
   updateBasketTable();
+  if (typeof renderWishlist === 'function') renderWishlist();
 });
 
 function loadPrices() {
