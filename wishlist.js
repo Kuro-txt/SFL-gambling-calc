@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
-// Clean DOM Tab Switcher
+// Tab Switcher
 function setupTabs() {
   const tabCalcBtn = document.getElementById('tab-calc-btn');
   const tabWishlistBtn = document.getElementById('tab-wishlist-btn');
@@ -39,18 +39,28 @@ function setupTabs() {
   });
 }
 
-// Fetch NFT catalog from server endpoint
+// Fetch NFT list from Backend
 async function loadNftCatalog() {
+  const menu = document.getElementById('wishlist-search-menu');
   try {
     const res = await fetch(`${BACKEND_URL}/api/nfts`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
     
-    if (Array.isArray(data)) {
-      allNfts = data;
-    } else {
-      allNfts = [];
-    }
+    let rawList = Array.isArray(data) ? data : (data.data || data.nfts || Object.values(data));
+
+    // Map sfl.world fields: floor -> price, boost_text -> boost
+    allNfts = rawList.map(item => {
+      const name = item.name || item.title || 'Unknown NFT';
+      const price = parseFloat(item.floor ?? item.price ?? item.lastSalePrice ?? 0) || 0;
+      const boost = item.boost_text || item.boost || (item.have_boost ? "Boost Active" : "No Boost");
+
+      return {
+        name: String(name).trim(),
+        price: price,
+        boost: String(boost).trim()
+      };
+    }).filter(item => item.name !== 'Unknown NFT');
 
     // Sync saved items with live prices
     wishlistItems.forEach(savedItem => {
@@ -64,7 +74,7 @@ async function loadNftCatalog() {
     saveWishlist();
     renderWishlist();
   } catch (err) {
-    console.warn("Could not fetch live NFT catalog from backend:", err.message);
+    console.error("Failed to load NFT catalog from server:", err.message);
   }
 }
 
@@ -80,7 +90,7 @@ function initNftCombobox() {
     menu.innerHTML = '';
 
     if (allNfts.length === 0) {
-      menu.innerHTML = '<li class="p-3 text-sfl-woodLight italic text-xs">Loading items from sfl.world...</li>';
+      menu.innerHTML = '<li class="p-3 text-sfl-woodLight italic text-xs">Loading live items from server...</li>';
       menu.classList.remove('hidden');
       return;
     }
@@ -200,7 +210,7 @@ function renderWishlist() {
 
   const grandTotalCoins = grandTotalFlowers * coinRatio;
 
-  // Update Summary Total Cards
+  // Update Summary Totals
   document.getElementById('wishlist-item-count').textContent = `${wishlistItems.length} Item${wishlistItems.length === 1 ? '' : 's'}`;
   document.getElementById('wishlist-total-flowers').textContent = grandTotalFlowers.toFixed(2);
   document.getElementById('wishlist-total-coins').textContent = grandTotalCoins.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
