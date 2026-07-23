@@ -60,7 +60,7 @@
           </span>
           <div class="flex items-center gap-2 w-full sm:w-auto">
             <input type="email" id="auth-email" placeholder="Email" class="sfl-input px-2 py-1 text-xs text-sfl-dirt rounded w-full sm:w-36">
-            <input type="text" id="auth-password" placeholder="Password" class="sfl-input px-2 py-1 text-xs text-sfl-dirt rounded w-full sm:w-32">
+            <input type="password" id="auth-password" placeholder="Password" class="sfl-input px-2 py-1 text-xs text-sfl-dirt rounded w-full sm:w-32">
             <button id="btn-login" class="bg-sfl-green text-white font-bold px-3 py-1 rounded text-xs hover:bg-green-700 transition whitespace-nowrap">Sign In</button>
             <button id="btn-signup" class="bg-amber-600 text-white font-bold px-3 py-1 rounded text-xs hover:bg-amber-700 transition whitespace-nowrap">Sign Up</button>
           </div>
@@ -322,7 +322,7 @@
             </h3>
             <p class="text-[11px] text-sfl-woodLight font-semibold">Track live floor prices, boosts, and total cost of target items from sfl.world.</p>
           </div>
-          <button id="clear-wishlist-btn" class="bg-sfl-accent text-white px-3 py-1.5 rounded-lg text-xs font-bold border-2 border-sfl-dirt hover:bg-red-700 transition">
+          <button id="clear-wishlist-btn" class="bg-sfl-accent text-white px-3 py-1.5 rounded-lg text-xs font-bold border-2 border-sfl-dirt hover:bg-red-700 transition cursor-pointer">
             🗑️ Clear Wishlist
           </button>
         </div>
@@ -360,24 +360,31 @@
           </table>
         </div>
 
-       <!-- WISHLIST SUMMARY PANEL -->
-<div class="bg-sfl-gold/20 border-2 border-sfl-gold rounded-xl p-4 text-center shadow-inner space-y-2">
-  <div class="grid grid-cols-2 gap-2 text-center items-center">
-    <div>
-      <span class="text-[10px] font-bold uppercase tracking-wider text-sfl-wood block">Saved Items</span>
-      <h2 class="text-xl sm:text-2xl font-pixel font-bold text-sfl-wood mt-0.5">
-        <span id="wishlist-item-count">0 Items</span>
-      </h2>
+        <!-- WISHLIST SUMMARY PANEL -->
+        <div class="bg-sfl-gold/20 border-2 border-sfl-gold rounded-xl p-4 text-center shadow-inner space-y-2">
+          <div class="grid grid-cols-2 gap-2 text-center items-center">
+            <div>
+              <span class="text-[10px] font-bold uppercase tracking-wider text-sfl-wood block">Saved Items</span>
+              <h2 class="text-xl sm:text-2xl font-pixel font-bold text-sfl-wood mt-0.5">
+                <span id="wishlist-item-count">0 Items</span>
+              </h2>
+            </div>
+            <div class="border-l border-sfl-cardBorder/40 px-1">
+              <span class="text-[10px] font-bold uppercase tracking-wider text-sfl-wood block">Total Flowers Needed</span>
+              <h2 class="text-xl sm:text-2xl font-pixel font-bold text-sfl-green mt-0.5 flex items-center justify-center gap-1">
+                <span id="wishlist-total-flowers">0.00</span>
+                <img src="./assets/flower.webp" onerror="this.onerror=null;this.src='https://raw.githubusercontent.com/sunflower-land/sunflower-land/main/src/assets/icons/sfl.png';" class="w-5 h-5 sfl-icon" alt="Flower">
+              </h2>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
     </div>
-    <div class="border-l border-sfl-cardBorder/40 px-1">
-      <span class="text-[10px] font-bold uppercase tracking-wider text-sfl-wood block">Total Flowers Needed</span>
-      <h2 class="text-xl sm:text-2xl font-pixel font-bold text-sfl-green mt-0.5 flex items-center justify-center gap-1">
-        <span id="wishlist-total-flowers">0.00</span>
-        <img src="./assets/flower.webp" onerror="this.onerror=null;this.src='https://raw.githubusercontent.com/sunflower-land/sunflower-land/main/src/assets/icons/sfl.png';" class="w-5 h-5 sfl-icon" alt="Flower">
-      </h2>
-    </div>
+
   </div>
-</div>
+
   <!-- Modular Scripts -->
   <script src="config.js"></script>
   <script src="auth.js"></script>
