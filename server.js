@@ -20,7 +20,8 @@ const supabaseAdmin = (supabaseUrl && supabaseServiceKey)
 const EXCLUDED_KEYWORDS = [
   'seed', 'axe', 'pickaxe', 'rod', 'shovel', 'drill', 
   'worm', 'wiggler', 'grub', 'fertilizer', 'mix', 
-  'bait', 'potion', 'feed', 'box', 'chest'
+  'bait', 'potion', 'feed', 'box', 'chest',
+  'updated', 'created', 'id'
 ];
 
 function isExcludedItem(itemName) {
@@ -153,7 +154,6 @@ app.get('/api/nfts', async (req, res) => {
     const rawData = response.data;
     let itemsList = [];
 
-    // Safely parse deeply nested object nodes without infinite recursion
     function extractItems(node, depth = 0) {
       if (!node || depth > 8) return;
       if (Array.isArray(node)) {
@@ -177,7 +177,6 @@ app.get('/api/nfts', async (req, res) => {
 
     extractItems(rawData);
 
-    // Deduplicate by item name
     const uniqueMap = new Map();
     itemsList.forEach(item => {
       if (!uniqueMap.has(item.name.toLowerCase())) {
@@ -219,20 +218,37 @@ app.get('/api/trigger-daily-baseline', async (req, res) => {
     let errors = [];
 
     for (const profile of profiles) {
-      try {
-        if (!profile.farm_id) continue;
+      if (!profile.farm_id) continue;
 
-        const headers = { 'User-Agent': 'Mozilla/5.0', 'Accept': 'application/json' };
-        if (process.env.SFL_API_KEY) {
-          headers['x-api-key'] = process.env.SFL_API_KEY;
-          headers['Authorization'] = `Bearer ${process.env.SFL_API_KEY}`;
+      let response = null;
+      let attempts = 0;
+      const headers = { 'User-Agent': 'Mozilla/5.0', 'Accept': 'application/json' };
+      
+      if (process.env.SFL_API_KEY) {
+        headers['x-api-key'] = process.env.SFL_API_KEY;
+        headers['Authorization'] = `Bearer ${process.env.SFL_API_KEY}`;
+      }
+
+      // Retry mechanism for rate limits (429)
+      while (attempts < 2) {
+        try {
+          response = await axios.get(`https://api.sunflower-land.com/community/farms/${profile.farm_id}`, {
+            headers,
+            timeout: 10000
+          });
+          break; // Success! Exit retry loop
+        } catch (fetchErr) {
+          attempts++;
+          if (fetchErr.response?.status === 429 && attempts < 2) {
+            console.warn(`[CRON 429] Rate limited on Farm #${profile.farm_id}. Retrying in 8s...`);
+            await sleep(8000); // Back off for 8 seconds
+          } else {
+            throw fetchErr;
+          }
         }
+      }
 
-        const response = await axios.get(`https://api.sunflower-land.com/community/farms/${profile.farm_id}`, {
-          headers,
-          timeout: 8000
-        });
-
+      try {
         const data = response.data;
         const rawInventory = 
           data?.inventory || 
@@ -270,7 +286,8 @@ app.get('/api/trigger-daily-baseline', async (req, res) => {
         errors.push({ farm_id: profile.farm_id, error: err.message });
       }
 
-      await sleep(1200);
+      // 🛑 Stagger requests by 4.5 seconds to prevent rate limits
+      await sleep(4500);
     }
 
     return res.json({
