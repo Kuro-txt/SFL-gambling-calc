@@ -418,3 +418,26 @@ function removeItem(index) {
   basket.splice(index, 1);
   updateBasketTable();
 }
+
+// --- CRYPTO DONATION CLIPBOARD COPY ---
+document.getElementById('donate-btn')?.addEventListener('click', async () => {
+  const donationAddress = "0xE32d234D63998F5078de9A7E2303233699276642";
+  const donateBtn = document.getElementById('donate-btn');
+
+  try {
+    await navigator.clipboard.writeText(donationAddress);
+    
+    // Visual text feedback
+    const originalText = donateBtn.textContent;
+    donateBtn.textContent = "Copied!";
+    donateBtn.classList.add('text-green-600');
+
+    setTimeout(() => {
+      donateBtn.textContent = originalText;
+      donateBtn.classList.remove('text-green-600');
+    }, 2000);
+
+  } catch (err) {
+    prompt("Copy your donation address below:", donationAddress);
+  }
+});
