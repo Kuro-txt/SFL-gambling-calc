@@ -44,13 +44,8 @@
       <!-- Empty spacer element on left to center the title perfectly when on desktop -->
       <div class="hidden sm:block w-16"></div>
 
-    <!-- TOP BAR WRAPPER (Header + Top-Right Minimalist Donate Link) -->
-    <div class="relative grid grid-cols-1 sm:grid-cols-3 items-center gap-3">
-      <!-- Left side spacer to balance the grid -->
-      <div class="hidden sm:block"></div>
-
-      <!-- HEADER BANNER (Centered in grid) -->
-      <div class="text-center space-y-1 justify-self-center">
+      <!-- HEADER BANNER -->
+      <div class="text-center space-y-1">
         <div class="inline-block bg-sfl-wood text-amber-200 border-2 border-sfl-dirt px-6 py-1.5 rounded-full shadow-md">
           <h1 class="text-2xl sm:text-4xl font-pixel tracking-wider font-bold text-amber-300 flex items-center gap-2 justify-center">
             <span>🌻</span> SFL RESOURCE CALCULATOR
@@ -59,9 +54,9 @@
         <p class="text-xs font-semibold text-sfl-woodLight">Live SFL market prices, NFT wishlist & farm inventory tool</p>
       </div>
 
-      <!-- TOP RIGHT CORNER: Pushed to the far right -->
-      <div class="justify-self-center sm:justify-self-end">
-        <button id="donate-btn" class="text-xs font-bold text-white hover:text-amber-300 transition underline cursor-pointer bg-transparent border-none p-0 whitespace-nowrap">
+      <!-- TOP RIGHT CORNER: Minimalist Donate Link -->
+      <div class="sm:self-start">
+        <button id="donate-btn" class="text-xs font-bold text-white hover:text-amber-700 transition underline cursor-pointer bg-transparent border-none p-0 whitespace-nowrap">
           Donate
         </button>
       </div>
