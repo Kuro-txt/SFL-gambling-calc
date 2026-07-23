@@ -1,0 +1,48 @@
+/* --- SFL CALCULATOR THEME & CUSTOM STYLES --- */
+
+body {
+  background-color: #2e531c;
+  background-image: radial-gradient(#3a6923 15%, transparent 16%), radial-gradient(#3a6923 15%, transparent 16%);
+  background-size: 30px 30px;
+  background-position: 0 0, 15px 15px;
+}
+
+.sfl-panel {
+  background-color: #fceade;
+  border: 4px solid #5c3317;
+  box-shadow: inset -4px -4px 0px #d4a373, 0px 8px 0px #1a0f07;
+}
+
+.sfl-input {
+  background-color: #ffffff;
+  border: 3px solid #8a5832;
+  box-shadow: inset 2px 2px 0px #d9d9d9;
+}
+
+.sfl-btn {
+  background-color: #e76f51;
+  border: 3px solid #4a1e05;
+  box-shadow: 0px 4px 0px #311302;
+}
+
+.sfl-btn:active {
+  transform: translateY(2px);
+  box-shadow: 0px 2px 0px #311302;
+}
+
+.sfl-icon {
+  image-rendering: pixelated;
+  display: inline-block;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+
+input[type=number]::-webkit-inner-spin-button, 
+input[type=number]::-webkit-outer-spin-button { 
+  -webkit-appearance: none; 
+  margin: 0; 
+}
+
+input[type=number] {
+  -moz-appearance: textfield;
+}
