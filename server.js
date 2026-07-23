@@ -9,14 +9,14 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-// Initialize Supabase Admin Client using service_role key
+// Initialize Supabase Admin Client
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const supabaseAdmin = (supabaseUrl && supabaseServiceKey) 
   ? createClient(supabaseUrl, supabaseServiceKey) 
   : null;
 
-// Excluded keywords filter
+// Excluded Keywords Filter
 const EXCLUDED_KEYWORDS = [
   'seed', 'axe', 'pickaxe', 'rod', 'shovel', 'drill', 
   'worm', 'wiggler', 'grub', 'fertilizer', 'mix', 
@@ -69,7 +69,7 @@ app.get('/api/get-farm', async (req, res) => {
 
     if (err.response?.status === 429) {
       return res.status(429).json({ 
-        error: '⚠️ Server API rate limit reached! Please wait a few minutes, or paste your own personal SFL API Key.' 
+        error: '⚠️ Server API rate limit reached! Please wait a few minutes, or paste your personal SFL API Key.' 
       });
     }
 
@@ -129,7 +129,7 @@ app.get('/api/get-data', async (req, res) => {
   return res.json(fallbackCatalog);
 });
 
-// Proxy Endpoint 3: Fetches Live NFT Catalog from sfl.world
+// Proxy Endpoint 3: Live NFT Catalog (Flattens all nested categories)
 app.get('/api/nfts', async (req, res) => {
   try {
     const response = await axios.get('https://sfl.world/api/v1/nfts', {
@@ -142,25 +142,41 @@ app.get('/api/nfts', async (req, res) => {
     });
 
     const rawData = response.data;
-    let itemsArray = Array.isArray(rawData) ? rawData : (rawData.data || rawData.nfts || Object.values(rawData || {}));
+    let itemsList = [];
 
-    const cleanedList = itemsArray.map(item => {
-      if (!item || typeof item !== 'object') return null;
+    // Recursive extractor to flatten nested categories
+    function extractItems(node) {
+      if (!node) return;
+      if (Array.isArray(node)) {
+        node.forEach(extractItems);
+      } else if (typeof node === 'object') {
+        if (node.name || node.title) {
+          const name = node.name || node.title;
+          const price = parseFloat(node.floor ?? node.price ?? node.lastSalePrice ?? 0) || 0;
+          const boost = node.boost_text || node.boost || (node.have_boost ? "Boost Active" : "No Boost");
 
-      const name = item.name || item.title || null;
-      if (!name) return null;
+          itemsList.push({
+            name: String(name).trim(),
+            price: price,
+            boost: String(boost).trim()
+          });
+        } else {
+          Object.values(node).forEach(extractItems);
+        }
+      }
+    }
 
-      const price = parseFloat(item.floor ?? item.price ?? item.lastSalePrice ?? 0) || 0;
-      const boost = item.boost_text || item.boost || (item.have_boost ? "Boost Active" : "No Boost");
+    extractItems(rawData);
 
-      return {
-        name: String(name).trim(),
-        price: price,
-        boost: String(boost).trim()
-      };
-    }).filter(item => item !== null);
+    // Deduplicate by item name
+    const uniqueMap = new Map();
+    itemsList.forEach(item => {
+      if (!uniqueMap.has(item.name.toLowerCase())) {
+        uniqueMap.set(item.name.toLowerCase(), item);
+      }
+    });
 
-    return res.json(cleanedList);
+    return res.json(Array.from(uniqueMap.values()));
   } catch (err) {
     console.error('[NFT API ERROR]:', err.message);
     return res.status(500).json({ error: `Failed to fetch NFTs from sfl.world: ${err.message}` });
