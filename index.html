@@ -252,7 +252,7 @@
 
         </div>
 
-        <!-- HARVEST TRACKER -->
+        <!-- HARVEST TRACKER (SINGLE UNIQUE LOCATION) -->
         <div class="bg-sfl-card/90 p-4 rounded-xl border-2 border-sfl-cardBorder shadow-sm space-y-3">
           <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
             <div>
@@ -268,10 +268,33 @@
               <button id="log-yield-btn" class="bg-sfl-green text-white px-3 py-1.5 rounded-lg text-xs font-bold border-2 border-sfl-dirt hover:bg-green-700 transition">
                 🏁 2. Calculate Harvest Yield
               </button>
+              
               <input type="file" id="import-file-input" accept=".json" class="hidden">
-              <button id="import-json-btn" class="bg-sfl-wood text-amber-200 px-2.5 py-1.5 rounded-lg text-xs font-bold border-2 border-sfl-dirt hover:bg-sfl-woodLight transition">📤 Import</button>
-              <button id="export-json-btn" class="bg-sfl-wood text-amber-200 px-2.5 py-1.5 rounded-lg text-xs font-bold border-2 border-sfl-dirt hover:bg-sfl-woodLight transition">📥 Export</button>
+              <button id="import-json-btn" class="bg-sfl-wood text-amber-200 px-2.5 py-1.5 rounded-lg text-xs font-bold border-2 border-sfl-dirt hover:bg-sfl-woodLight transition">
+                📤 Import
+              </button>
+              <button id="export-json-btn" class="bg-sfl-wood text-amber-200 px-2.5 py-1.5 rounded-lg text-xs font-bold border-2 border-sfl-dirt hover:bg-sfl-woodLight transition">
+                📥 Export
+              </button>
             </div>
+          </div>
+
+          <!-- Guide Box -->
+          <div class="bg-amber-50/80 border border-sfl-cardBorder rounded-lg p-3 text-xs text-sfl-wood space-y-1.5">
+            <p class="font-bold flex items-center gap-1.5 text-sfl-wood">
+              <span>📖</span> How to Save Snapshots & Log Daily Yields:
+            </p>
+            <ul class="list-disc list-inside space-y-1 text-[11px] text-sfl-woodLight font-medium pl-1">
+              <li>
+                <strong>Automatic 00:00 UTC Snapshot:</strong> When signed in, our server automatically records your farm stock at 00:00 UTC every night!
+              </li>
+              <li>
+                <strong>Manual Baseline:</strong> Click <span class="text-amber-800 font-bold">"🚩 1. Save Pre-Harvest Stock"</span> before harvesting (it automatically reads your synced farm inventory, or items in your basket if manual).
+              </li>
+              <li>
+                <strong>Daily Calculation:</strong> After playing in-game, click <span class="text-sfl-green font-bold">"🔄 Sync Farm Quantities Now"</span>, then add items in your basket and click <span class="text-sfl-green font-bold">"🏁 2. Calculate Harvest Yield"</span> to log your net earnings.
+              </li>
+            </ul>
           </div>
 
           <!-- BASELINE STATUS DISPLAY -->
@@ -295,6 +318,7 @@
               <thead class="bg-sfl-card border-b-2 border-sfl-cardBorder text-sfl-wood uppercase text-[11px]">
                 <tr>
                   <th class="px-3 py-2">Date</th>
+                  <th class="px-3 py-2">Total Daily Yield</th>
                   <th class="px-3 py-2">Harvested Breakdown</th>
                   <th class="px-3 py-2">Harvest Net Flowers</th>
                   <th class="px-2 py-2 text-center">Actions</th>
@@ -302,7 +326,7 @@
               </thead>
               <tbody id="snapshot-history-body" class="divide-y divide-sfl-cardBorder/40 font-medium">
                 <tr>
-                  <td colspan="4" class="px-4 py-6 text-center text-sfl-woodLight italic">
+                  <td colspan="5" class="px-4 py-6 text-center text-sfl-woodLight italic">
                     No harvest sessions logged yet!
                   </td>
                 </tr>
@@ -311,7 +335,7 @@
           </div>
         </div>
 
-      </div>
+      </div> <!-- END CALCULATOR SECTION -->
 
       <!-- VIEW 2: NFT WISHLIST SECTION -->
       <div id="wishlist-section" class="hidden space-y-4">
@@ -387,100 +411,17 @@
           </div>
         </div>
 
-      </div>
+      </div> <!-- END WISHLIST SECTION -->
 
-    </div>
-
-    <!-- HARVEST TRACKER -->
-    <div class="bg-sfl-card/90 p-4 rounded-xl border-2 border-sfl-cardBorder shadow-sm space-y-3">
-      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-        <div>
-          <h3 class="text-sm font-bold text-sfl-wood uppercase flex items-center gap-2">
-            <span>🌾</span> Daily Yield & Resource Tracker
-          </h3>
-          <p class="text-[11px] text-sfl-woodLight font-semibold">Track crop, fruit, & resource yields harvested between sessions (Kept for 30 days).</p>
-        </div>
-        <div class="flex flex-wrap items-center gap-2">
-          <button id="save-pre-harvest-btn" class="bg-amber-600 text-amber-100 px-3 py-1.5 rounded-lg text-xs font-bold border-2 border-sfl-dirt hover:bg-amber-700 transition">
-            🚩 1. Save Pre-Harvest Stock
-          </button>
-          <button id="log-yield-btn" class="bg-sfl-green text-white px-3 py-1.5 rounded-lg text-xs font-bold border-2 border-sfl-dirt hover:bg-green-700 transition">
-            🏁 2. Calculate Harvest Yield
-          </button>
-          
-          <input type="file" id="import-file-input" accept=".json" class="hidden">
-          <button id="import-json-btn" class="bg-sfl-wood text-amber-200 px-2.5 py-1.5 rounded-lg text-xs font-bold border-2 border-sfl-dirt hover:bg-sfl-woodLight transition">
-            📤 Import
-          </button>
-          <button id="export-json-btn" class="bg-sfl-wood text-amber-200 px-2.5 py-1.5 rounded-lg text-xs font-bold border-2 border-sfl-dirt hover:bg-sfl-woodLight transition">
-            📥 Export
-          </button>
-        </div>
-      </div>
-
-  <!-- Guide Box -->
-      <div class="bg-amber-50/80 border border-sfl-cardBorder rounded-lg p-3 text-xs text-sfl-wood space-y-1.5">
-        <p class="font-bold flex items-center gap-1.5 text-sfl-wood">
-          <span>📖</span> How to Save Snapshots & Log Daily Yields:
-        </p>
-        <ul class="list-disc list-inside space-y-1 text-[11px] text-sfl-woodLight font-medium pl-1">
-          <li>
-            <strong>Automatic 00:00 UTC Snapshot:</strong> When signed in, our server automatically records your farm stock at 00:00 UTC every night!
-          </li>
-          <li>
-            <strong>Manual Baseline:</strong> Click <span class="text-amber-800 font-bold">"🚩 1. Save Pre-Harvest Stock"</span> before harvesting (it automatically reads your synced farm inventory, or items in your basket if manual).
-          </li>
-          <li>
-            <strong>Daily Calculation:</strong> After playing in-game, click <span class="text-sfl-green font-bold">"🔄 Sync Farm Quantities Now"</span>, then add items in your basket and click  <span class="text-sfl-green font-bold">"🏁 2. Calculate Harvest Yield"</span> to log your net earnings.
-          </li>
-        </ul>
-      </div>
-
-      <!-- BASELINE STATUS DISPLAY -->
-      <div id="pre-harvest-status" class="hidden bg-amber-100/90 border-2 border-amber-400 p-3 rounded-lg text-xs font-bold text-amber-900 space-y-2 shadow-sm">
-        <div id="cloud-baseline-status" class="hidden flex justify-between items-center text-green-800 border-b border-amber-300/60 pb-1">
-          <span>☁️ 00:00 UTC Cloud Baseline: <span class="font-extrabold">Active</span></span>
-          <span class="text-[10px] bg-green-200 text-green-900 px-2 py-0.5 rounded-full font-bold">Automatic</span>
-        </div>
-
-        <div id="manual-baseline-status" class="hidden">
-          <div class="flex justify-between items-center text-amber-900">
-            <span>🚩 Manual Baseline: <span class="font-extrabold text-amber-800">Active</span> (<span id="pre-harvest-time">Today</span>)</span>
-            <button id="clear-pre-harvest-btn" class="text-[10px] bg-sfl-accent text-white px-2 py-0.5 rounded font-bold hover:bg-red-700 transition">Clear Manual Baseline</button>
-          </div>
-          <div id="manual-baseline-items" class="mt-1 flex flex-wrap gap-1 text-[10px]"></div>
-        </div>
-      </div>
-
-      <div class="overflow-x-auto bg-white/70 border-2 border-sfl-cardBorder rounded-lg">
-        <table class="w-full text-left text-xs text-sfl-dirt">
-          <thead class="bg-sfl-card border-b-2 border-sfl-cardBorder text-sfl-wood uppercase text-[11px]">
-            <tr>
-              <th class="px-3 py-2">Date</th>
-              <th class="px-3 py-2">Total Daily Yield</th>
-              <th class="px-3 py-2">Harvested Breakdown</th>
-              <th class="px-3 py-2">Harvest Net Flowers</th>
-              <th class="px-2 py-2 text-center">Actions</th>
-            </tr>
-          </thead>
-          <tbody id="snapshot-history-body" class="divide-y divide-sfl-cardBorder/40 font-medium">
-            <tr>
-              <td colspan="5" class="px-4 py-6 text-center text-sfl-woodLight italic">
-                No harvest sessions logged yet!
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
+    </div> <!-- END MAIN PANEL CONTAINER -->
 
   </div>
 
-  <!-- Modular Scripts -->
+  <!-- CORRECTED SCRIPT INITIALIZATION ORDER -->
   <script src="config.js"></script>
-  <script src="auth.js"></script>
   <script src="calculator.js"></script>
   <script src="tracker.js"></script>
+  <script src="auth.js"></script>
   <script src="wishlist.js"></script>
 
 </body>
