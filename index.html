@@ -37,20 +37,20 @@
 </head>
 <body class="font-game text-sfl-dirt min-h-screen p-4 sm:p-8 flex items-center justify-center">
 
-  <div class="w-full max-w-5xl space-y-0">
+  <div class="w-full max-w-5xl space-y-4">
 
-    <!-- TOP NAVIGATION TABS -->
-    <div class="flex items-center gap-2 pl-2">
-      <button id="tab-calc-btn" class="bg-sfl-wood text-amber-200 px-5 py-2.5 rounded-t-xl font-bold text-xs border-t-2 border-x-2 border-sfl-dirt shadow-md flex items-center gap-2">
-        <span>🌻</span> Resource & Harvest Calculator
-      </button>
-      <button id="tab-wishlist-btn" class="bg-amber-100/60 text-sfl-woodLight px-5 py-2.5 rounded-t-xl font-bold text-xs border-t-2 border-x-2 border-transparent hover:bg-amber-200/60 transition flex items-center gap-2">
-        <span>⭐</span> NFT Wishlist
-      </button>
+    <!-- ALWAYS VISIBLE HEADER BANNER -->
+    <div class="text-center space-y-1">
+      <div class="inline-block bg-sfl-wood text-amber-200 border-2 border-sfl-dirt px-6 py-1.5 rounded-full shadow-md">
+        <h1 class="text-2xl sm:text-4xl font-pixel tracking-wider font-bold text-amber-300 flex items-center gap-2 justify-center">
+          <span>🌻</span> SFL RESOURCE CALCULATOR
+        </h1>
+      </div>
+      <p class="text-xs font-semibold text-sfl-woodLight">Live SFL market prices, NFT wishlist & farm inventory tool</p>
     </div>
 
-    <!-- MAIN PANEL WRAPPER -->
-    <div class="sfl-panel rounded-b-2xl rounded-tr-2xl p-6 sm:p-8 relative space-y-6">
+    <!-- MAIN PANEL CONTAINER -->
+    <div class="sfl-panel rounded-2xl p-5 sm:p-7 relative space-y-5">
       
       <!-- Account Sign-In / Sync Bar -->
       <div id="auth-panel" class="bg-sfl-wood text-amber-100 p-3 rounded-xl border-2 border-sfl-dirt flex flex-col sm:flex-row justify-between items-center gap-3 shadow-md">
@@ -74,18 +74,20 @@
         </div>
       </div>
 
+      <!-- TAB NAVIGATION BUTTONS -->
+      <div class="flex items-center gap-2 border-b-2 border-sfl-cardBorder pb-2">
+        <button id="tab-calc-btn" onclick="switchTab('calc')" 
+          class="bg-sfl-wood text-amber-200 px-5 py-2 rounded-xl font-bold text-xs border-2 border-sfl-dirt shadow-md flex items-center gap-2 cursor-pointer">
+          <span>🧺</span> Calculator & Daily Tracker
+        </button>
+        <button id="tab-wishlist-btn" onclick="switchTab('wishlist')" 
+          class="bg-amber-100/60 text-sfl-woodLight px-5 py-2 rounded-xl font-bold text-xs border-2 border-transparent hover:bg-amber-200/60 transition flex items-center gap-2 cursor-pointer">
+          <span>⭐</span> NFT Wishlist
+        </button>
+      </div>
+
       <!-- VIEW 1: CALCULATOR & HARVEST TRACKER -->
       <div id="calculator-section" class="space-y-6">
-        
-        <!-- Header -->
-        <div class="text-center space-y-1">
-          <div class="inline-block bg-sfl-wood text-amber-200 border-2 border-sfl-dirt px-6 py-1.5 rounded-full shadow-md">
-            <h1 class="text-2xl sm:text-4xl font-pixel tracking-wider font-bold text-amber-300 flex items-center gap-2 justify-center">
-              <span>🌻</span> SFL RESOURCE CALCULATOR
-            </h1>
-          </div>
-          <p class="text-xs font-semibold text-sfl-woodLight">Live SFL market prices & farm inventory tool</p>
-        </div>
 
         <!-- Farm Sync Panel -->
         <div class="bg-sfl-card/90 p-4 rounded-xl border-2 border-sfl-cardBorder space-y-3">
@@ -313,20 +315,18 @@
 
       <!-- VIEW 2: NFT WISHLIST SECTION -->
       <div id="wishlist-section" class="hidden space-y-4">
-        <div class="text-center space-y-1 border-b-2 border-sfl-cardBorder/50 pb-3">
-          <div class="inline-block bg-sfl-wood text-amber-200 border-2 border-sfl-dirt px-6 py-1.5 rounded-full shadow-md">
-            <h1 class="text-2xl sm:text-4xl font-pixel tracking-wider font-bold text-amber-300 flex items-center gap-2 justify-center">
-              <span>⭐</span> NFT & ITEM WISHLIST
-            </h1>
-          </div>
-          <p class="text-xs font-semibold text-sfl-woodLight">Track live floor prices, boosts, and items from sfl.world</p>
+        <div>
+          <h3 class="text-sm font-bold text-sfl-wood uppercase flex items-center gap-2">
+            <span>⭐</span> NFT & Collectibles Wishlist
+          </h3>
+          <p class="text-[11px] text-sfl-woodLight font-semibold">Track live floor prices, boosts, and collectibles from sfl.world</p>
         </div>
 
         <!-- NFT Search / Combobox -->
         <div class="bg-sfl-card/80 p-4 rounded-xl border-2 border-sfl-cardBorder space-y-2">
           <label class="block text-xs font-bold uppercase tracking-wider text-sfl-wood">🔍 Search & Add SFL NFTs or Collectibles</label>
           <div class="relative max-w-lg">
-            <input type="text" id="wishlist-search-input" placeholder="Click or type to search NFT name or boost..." autocomplete="off"
+            <input type="text" id="wishlist-search-input" placeholder="Type or click to search NFT name or boost..." autocomplete="off"
               class="w-full sfl-input rounded-lg px-3 py-2 text-sm text-sfl-dirt focus:outline-none focus:ring-2 focus:ring-sfl-gold">
             
             <ul id="wishlist-search-menu" class="hidden absolute left-0 right-0 top-full mt-1 max-h-64 overflow-y-auto bg-white border-2 border-sfl-woodLight rounded-lg shadow-xl z-30 divide-y divide-sfl-cardBorder/30 text-sm">
