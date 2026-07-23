@@ -4,7 +4,6 @@ if (typeof window.editingSnapshotDate === 'undefined') {
   window.editingSnapshotDate = null;
 }
 
-// Helper to normalize item keys consistently
 function normalizeItemKey(rawName) {
   if (!rawName) return '';
   return String(rawName)
@@ -21,7 +20,6 @@ function roundUpToThreeDecimals(val) {
   return Math.ceil((parseFloat(val) || 0) * 1000) / 1000;
 }
 
-// Render small badges for pre-harvest stock items
 function renderStockBadges(stockObj, targetElId) {
   const container = document.getElementById(targetElId);
   if (!container || !stockObj) return;
@@ -98,12 +96,35 @@ async function updatePreHarvestUI() {
   }
 }
 
-// 1. SAVE PRE-HARVEST BASELINE (MERGES FULL FARM INVENTORY WITH BASKET)
+// 1. SAVE / MERGE PRE-HARVEST BASELINE
 document.getElementById('save-pre-harvest-btn')?.addEventListener('click', async () => {
   let baselineStock = {};
 
-  // Step A: Load full synced farm inventory first so no items are lost
-  if (typeof farmInventoryData !== 'undefined' && Object.keys(farmInventoryData).length > 0) {
+  // Preserve and merge existing saved baseline if available
+  const existingRaw = localStorage.getItem('sfl_pre_harvest_stock');
+  if (existingRaw) {
+    try {
+      const existingParsed = JSON.parse(existingRaw);
+      baselineStock = existingParsed.stock || existingParsed || {};
+    } catch (e) {
+      baselineStock = {};
+    }
+  }
+  
+  let newlyAdded = false;
+
+  if (typeof basket !== 'undefined' && basket.length > 0) {
+    basket.forEach(entry => {
+      let cleanName = normalizeItemKey(entry.item);
+      if (typeof isSnapshotEligible !== 'function' || isSnapshotEligible(cleanName)) {
+        let addedQty = parseFloat(entry.qty) || 0;
+        if (addedQty > 0) {
+          baselineStock[cleanName] = (baselineStock[cleanName] || 0) + addedQty;
+          newlyAdded = true;
+        }
+      }
+    });
+  } else if (typeof farmInventoryData !== 'undefined' && Object.keys(farmInventoryData).length > 0) {
     for (let key in farmInventoryData) {
       let cleanName = normalizeItemKey(key);
       if (typeof isSnapshotEligible !== 'function' || isSnapshotEligible(cleanName)) {
@@ -112,23 +133,13 @@ document.getElementById('save-pre-harvest-btn')?.addEventListener('click', async
           : parseFloat(farmInventoryData[key]?.amount || 0);
         if (val > 0) {
           baselineStock[cleanName] = val;
+          newlyAdded = true;
         }
       }
     }
   }
 
-  // Step B: Merge items from the Farm Basket into the baseline
-  if (typeof basket !== 'undefined' && basket.length > 0) {
-    basket.forEach(entry => {
-      let cleanName = normalizeItemKey(entry.item);
-      if (typeof isSnapshotEligible !== 'function' || isSnapshotEligible(cleanName)) {
-        let qtyToAdd = parseFloat(entry.qty) || 0;
-        baselineStock[cleanName] = (baselineStock[cleanName] || 0) + qtyToAdd;
-      }
-    });
-  }
-
-  if (Object.keys(baselineStock).length === 0) {
+  if (!newlyAdded && Object.keys(baselineStock).length === 0) {
     alert("⚠️ Cannot save an empty snapshot! Please add items to your Farm Basket or sync your farm inventory first.");
     return;
   }
@@ -140,7 +151,7 @@ document.getElementById('save-pre-harvest-btn')?.addEventListener('click', async
 
   localStorage.setItem('sfl_pre_harvest_stock', JSON.stringify(preHarvestPayload));
   updatePreHarvestUI();
-  alert("🚩 Manual Pre-Harvest baseline saved! Harvest/gather in-game, update your basket or resync, then click '2. Calculate Harvest Yield'.");
+  alert("🚩 Pre-Harvest baseline updated! You can add more items or go harvest in-game before calculating yields.");
 });
 
 document.getElementById('clear-pre-harvest-btn')?.addEventListener('click', () => {
@@ -148,7 +159,7 @@ document.getElementById('clear-pre-harvest-btn')?.addEventListener('click', () =
   updatePreHarvestUI();
 });
 
-// 2. CALCULATE HARVEST YIELD (MERGES FARM INVENTORY WITH BASKET POST-HARVEST)
+// 2. CALCULATE HARVEST YIELD
 document.getElementById('log-yield-btn')?.addEventListener('click', async () => {
   let preHarvestData = null;
   const todayDate = new Date().toISOString().split('T')[0];
@@ -184,8 +195,14 @@ document.getElementById('log-yield-btn')?.addEventListener('click', async () => 
   const taxRate = parseFloat(document.getElementById('tax-select')?.value) || 0;
   let postHarvestStock = {};
 
-  // Step A: Load full synced farm inventory
-  if (typeof farmInventoryData !== 'undefined' && Object.keys(farmInventoryData).length > 0) {
+  if (typeof basket !== 'undefined' && basket.length > 0) {
+    basket.forEach(entry => {
+      let cleanName = normalizeItemKey(entry.item);
+      if (typeof isSnapshotEligible !== 'function' || isSnapshotEligible(cleanName)) {
+        postHarvestStock[cleanName] = (postHarvestStock[cleanName] || 0) + (parseFloat(entry.qty) || 0);
+      }
+    });
+  } else if (typeof farmInventoryData !== 'undefined' && Object.keys(farmInventoryData).length > 0) {
     for (let key in farmInventoryData) {
       let cleanName = normalizeItemKey(key);
       if (typeof isSnapshotEligible !== 'function' || isSnapshotEligible(cleanName)) {
@@ -195,17 +212,6 @@ document.getElementById('log-yield-btn')?.addEventListener('click', async () => 
         postHarvestStock[cleanName] = val;
       }
     }
-  }
-
-  // Step B: Merge Farm Basket items into post-harvest stock
-  if (typeof basket !== 'undefined' && basket.length > 0) {
-    basket.forEach(entry => {
-      let cleanName = normalizeItemKey(entry.item);
-      if (typeof isSnapshotEligible !== 'function' || isSnapshotEligible(cleanName)) {
-        let qtyToAdd = parseFloat(entry.qty) || 0;
-        postHarvestStock[cleanName] = (postHarvestStock[cleanName] || 0) + qtyToAdd;
-      }
-    });
   }
 
   let newYieldsMap = {};
@@ -219,7 +225,6 @@ document.getElementById('log-yield-btn')?.addEventListener('click', async () => 
     let endQty = parseFloat(postHarvestStock[itemName]) || 0;
     let diff = endQty - startQty;
 
-    // Detect items whose total count actually increased
     if (diff > 0.0001) {
       let harvestedQty = roundUpToOneDecimal(diff);
       let matchedKey = (typeof allPrices !== 'undefined' && allPrices) 
