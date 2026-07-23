@@ -100,7 +100,7 @@ async function updatePreHarvestUI() {
 document.getElementById('save-pre-harvest-btn')?.addEventListener('click', async () => {
   let baselineStock = {};
 
-  // Step A: Load and parse existing snapshot items from localStorage
+  // Step A: Load ALL existing snapshot items from localStorage
   const existingRaw = localStorage.getItem('sfl_pre_harvest_stock');
   if (existingRaw) {
     try {
@@ -108,7 +108,7 @@ document.getElementById('save-pre-harvest-btn')?.addEventListener('click', async
       let rawStock = existingParsed.stock || existingParsed || {};
       for (let k in rawStock) {
         let cleanK = normalizeItemKey(k);
-        let val = parseFloat(rawStock[k]?.amount || rawStock[k] || 0);
+        let val = typeof rawStock[k] === 'number' ? rawStock[k] : parseFloat(rawStock[k]?.amount || rawStock[k] || 0);
         if (val > 0) {
           baselineStock[cleanK] = val;
         }
@@ -118,22 +118,21 @@ document.getElementById('save-pre-harvest-btn')?.addEventListener('click', async
     }
   }
 
-  let itemsAddedOrUpdated = false;
+  let newlyAddedOrUpdated = false;
 
-  // Step B: Merge items from Farm Basket (if Basket has items)
+  // Step B: Merge items from Farm Basket
   if (typeof basket !== 'undefined' && Array.isArray(basket) && basket.length > 0) {
     basket.forEach(entry => {
       let cleanName = normalizeItemKey(entry.item);
       let addedQty = parseFloat(entry.qty) || 0;
       if (addedQty > 0) {
-        // OVERWRITE or ADD specific item amount from basket
         baselineStock[cleanName] = addedQty;
-        itemsAddedOrUpdated = true;
+        newlyAddedOrUpdated = true;
       }
     });
   }
 
-  // Step C: Merge items from Synced Farm Inventory (if synced)
+  // Step C: Merge items from Synced Farm Inventory if present
   if (typeof farmInventoryData !== 'undefined' && farmInventoryData && Object.keys(farmInventoryData).length > 0) {
     for (let key in farmInventoryData) {
       let cleanName = normalizeItemKey(key);
@@ -142,16 +141,16 @@ document.getElementById('save-pre-harvest-btn')?.addEventListener('click', async
         : parseFloat(farmInventoryData[key]?.amount || 0);
       
       if (val > 0) {
-        // If not already explicitly added from basket, set farm inventory quantity
+        // Only set if not already overridden by basket
         if (baselineStock[cleanName] === undefined) {
           baselineStock[cleanName] = val;
         }
-        itemsAddedOrUpdated = true;
+        newlyAddedOrUpdated = true;
       }
     }
   }
 
-  if (!itemsAddedOrUpdated && Object.keys(baselineStock).length === 0) {
+  if (!newlyAddedOrUpdated && Object.keys(baselineStock).length === 0) {
     alert("⚠️ Cannot save an empty snapshot! Please add items to your Farm Basket or sync your farm inventory first.");
     return;
   }
@@ -163,7 +162,7 @@ document.getElementById('save-pre-harvest-btn')?.addEventListener('click', async
 
   localStorage.setItem('sfl_pre_harvest_stock', JSON.stringify(preHarvestPayload));
   updatePreHarvestUI();
-  alert("🚩 Pre-Harvest baseline saved/updated! Added items have been accumulated into your baseline.");
+  alert("🚩 Pre-Harvest baseline updated! New items were added without resetting previous snapshot items.");
 });
 
 document.getElementById('clear-pre-harvest-btn')?.addEventListener('click', () => {
@@ -199,7 +198,7 @@ document.getElementById('log-yield-btn')?.addEventListener('click', async () => 
     }
   }
 
-  if (!preHarvestData) {
+  if (!preHarvestData || Object.keys(preHarvestData).length === 0) {
     alert("⚠️ Click '1. Save Pre-Harvest Stock' FIRST or wait for the 00:00 UTC automatic snapshot before calculating harvest yield!");
     return;
   }
@@ -207,7 +206,13 @@ document.getElementById('log-yield-btn')?.addEventListener('click', async () => 
   const taxRate = parseFloat(document.getElementById('tax-select')?.value) || 0;
   let postHarvestStock = {};
 
-  // Build current post-harvest stock state (merging basket & farm inventory)
+  // Preserve all baseline items as post-harvest starting values (prevents resets on unselected items)
+  for (let key in preHarvestData) {
+    let cleanKey = normalizeItemKey(key);
+    postHarvestStock[cleanKey] = parseFloat(preHarvestData[key]) || 0;
+  }
+
+  // Update post-harvest stock from Synced Inventory if available
   if (typeof farmInventoryData !== 'undefined' && farmInventoryData && Object.keys(farmInventoryData).length > 0) {
     for (let key in farmInventoryData) {
       let cleanName = normalizeItemKey(key);
@@ -218,6 +223,7 @@ document.getElementById('log-yield-btn')?.addEventListener('click', async () => 
     }
   }
 
+  // Update post-harvest stock from Farm Basket if items exist
   if (typeof basket !== 'undefined' && Array.isArray(basket) && basket.length > 0) {
     basket.forEach(entry => {
       let cleanName = normalizeItemKey(entry.item);
@@ -251,7 +257,7 @@ document.getElementById('log-yield-btn')?.addEventListener('click', async () => 
   });
 
   if (Object.keys(newYieldsMap).length === 0) {
-    alert("⚠️ No item stock increase detected. Did you harvest in-game, or update your Farm Basket / Sync with new quantities?");
+    alert("⚠️ No item stock increase detected. Did you harvest in-game, or update your Farm Basket / Sync with higher quantities?");
     return;
   }
 
