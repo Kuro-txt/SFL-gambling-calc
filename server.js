@@ -70,12 +70,16 @@ app.get('/api/get-farm', async (req, res) => {
 
     const response = await axios.get(`https://api.sunflower-land.com/community/farms/${farmId}`, {
       headers,
-      timeout: 8000
+      timeout: 15000 // ⏱️ Increased timeout to 15s
     });
 
     return res.json(response.data);
   } catch (err) {
     console.error(`[SFL API ERROR] Farm #${farmId}:`, err.response?.status, err.message);
+
+    if (err.code === 'ECONNABORTED' || err.message.includes('timeout')) {
+      return res.status(504).json({ error: '⏳ Request timed out while connecting to Sunflower Land API. Please try again.' });
+    }
 
     if (err.response?.status === 429) {
       return res.status(429).json({ 
@@ -117,7 +121,7 @@ app.get('/api/get-data', async (req, res) => {
   try {
     const response = await axios.get('https://sfl.world/api/v1/prices', {
       headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)', 'Accept': 'application/json' },
-      timeout: 8000
+      timeout: 12000
     });
 
     let livePrices = response.data || {};
@@ -148,7 +152,7 @@ app.get('/api/nfts', async (req, res) => {
         'Accept': 'application/json, text/plain, */*',
         'Referer': 'https://sfl.world/'
       },
-      timeout: 12000
+      timeout: 15000
     });
 
     const rawData = response.data;
@@ -229,19 +233,22 @@ app.get('/api/trigger-daily-baseline', async (req, res) => {
         headers['Authorization'] = `Bearer ${process.env.SFL_API_KEY}`;
       }
 
-      // Retry mechanism for rate limits (429)
+      // Retry mechanism for rate limits (429) & network timeouts
       while (attempts < 2) {
         try {
           response = await axios.get(`https://api.sunflower-land.com/community/farms/${profile.farm_id}`, {
             headers,
-            timeout: 10000
+            timeout: 15000 // ⏱️ 15-second timeout for SFL API
           });
           break; // Success! Exit retry loop
         } catch (fetchErr) {
           attempts++;
-          if (fetchErr.response?.status === 429 && attempts < 2) {
-            console.warn(`[CRON 429] Rate limited on Farm #${profile.farm_id}. Retrying in 8s...`);
-            await sleep(8000); // Back off for 8 seconds
+          const isTimeout = fetchErr.code === 'ECONNABORTED' || fetchErr.message.includes('timeout');
+          const isRateLimited = fetchErr.response?.status === 429;
+
+          if ((isRateLimited || isTimeout) && attempts < 2) {
+            console.warn(`[CRON RETRY] Farm #${profile.farm_id} encountered ${isTimeout ? 'Timeout' : '429 Rate Limit'}. Retrying in 6s...`);
+            await sleep(6000); // Wait 6 seconds before trying again
           } else {
             throw fetchErr;
           }
@@ -286,8 +293,8 @@ app.get('/api/trigger-daily-baseline', async (req, res) => {
         errors.push({ farm_id: profile.farm_id, error: err.message });
       }
 
-      // 🛑 Stagger requests by 4.5 seconds to prevent rate limits
-      await sleep(4500);
+      // Stagger requests by 4 seconds to prevent rate limits
+      await sleep(4000);
     }
 
     return res.json({
