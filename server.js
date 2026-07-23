@@ -29,6 +29,9 @@ function isExcludedItem(itemName) {
   return EXCLUDED_KEYWORDS.some(kw => lower.includes(kw));
 }
 
+// Utility: Helper function to pause execution (prevents HTTP 429 Rate Limits)
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
 // Health Check
 app.get('/', (req, res) => {
   res.send('🌻 SFL Resource Calculator Backend Active');
@@ -137,7 +140,8 @@ app.get('/api/trigger-daily-baseline', async (req, res) => {
     // 1. Fetch all registered user profiles from Supabase
     const { data: profiles, error: profileErr } = await supabaseAdmin
       .from('profiles')
-      .select('id, farm_id');
+      .select('id, farm_id')
+      .not('farm_id', 'is', null);
 
     if (profileErr) throw profileErr;
     if (!profiles || profiles.length === 0) {
@@ -151,6 +155,8 @@ app.get('/api/trigger-daily-baseline', async (req, res) => {
     // 2. Loop through each registered user farm and record baseline
     for (const profile of profiles) {
       try {
+        if (!profile.farm_id) continue;
+
         const headers = { 'User-Agent': 'Mozilla/5.0', 'Accept': 'application/json' };
         if (process.env.SFL_API_KEY) {
           headers['x-api-key'] = process.env.SFL_API_KEY;
@@ -162,14 +168,22 @@ app.get('/api/trigger-daily-baseline', async (req, res) => {
           timeout: 8000
         });
 
-        const farmObj = response.data.farm?.farm || response.data.farm?.data || response.data.farm || response.data;
-        const rawInventory = farmObj?.inventory || {};
+        // Robust multi-path extraction to handle any API response format variations
+        const data = response.data;
+        const rawInventory = 
+          data?.inventory || 
+          data?.farm?.inventory || 
+          data?.state?.inventory || 
+          data?.data?.inventory || 
+          {};
 
         let cleanBaseline = {};
         for (let key in rawInventory) {
           if (!isExcludedItem(key)) {
             let val = typeof rawInventory[key] === 'number' ? rawInventory[key] : parseFloat(rawInventory[key]?.amount || 0);
-            if (val > 0) cleanBaseline[key.toLowerCase()] = Math.ceil(val * 10) / 10;
+            if (val > 0) {
+              cleanBaseline[key.toLowerCase().trim()] = Math.ceil(val * 10) / 10;
+            }
           }
         }
 
@@ -189,6 +203,9 @@ app.get('/api/trigger-daily-baseline', async (req, res) => {
         console.error(`Baseline snapshot failed for Farm #${profile.farm_id}:`, err.message);
         errors.push({ farm_id: profile.farm_id, error: err.message });
       }
+
+      // Pause 1 second between requests to prevent hitting SFL API 429 rate limits
+      await sleep(1000);
     }
 
     return res.json({
