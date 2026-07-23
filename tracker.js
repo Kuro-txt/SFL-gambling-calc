@@ -310,15 +310,8 @@ document.getElementById('log-yield-btn')?.addEventListener('click', async () => 
   }
 
   localStorage.setItem('sfl_daily_snapshots', JSON.stringify(history));
-  
-  // SAFE MERGE: Preserve all existing baseline items, updating only calculated items
-  let newUpdatedBaseline = { ...preHarvestData, ...postHarvestStock };
 
-  const preHarvestPayload = {
-    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    stock: newUpdatedBaseline
-  };
-  localStorage.setItem('sfl_pre_harvest_stock', JSON.stringify(preHarvestPayload));
+  // Base pre-harvest stock is NOT modified or erased here anymore!
 
   updatePreHarvestUI();
   renderSnapshotHistory();
