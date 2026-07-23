@@ -52,7 +52,7 @@
     <!-- MAIN PANEL -->
     <div class="sfl-panel rounded-2xl p-5 sm:p-7 relative space-y-5">
       
-      <!-- Account Sign-In / Sync Bar -->
+      <!-- Account Sign-In / Sync Bar & Donation Button -->
       <div id="auth-panel" class="bg-sfl-wood text-amber-100 p-3 rounded-xl border-2 border-sfl-dirt flex flex-col sm:flex-row justify-between items-center gap-3 shadow-md">
         <form id="auth-logged-out" onsubmit="return false;" class="w-full flex flex-col sm:flex-row items-center justify-between gap-2">
           <span class="text-xs font-bold text-amber-200 flex items-center gap-1.5">
@@ -72,6 +72,11 @@
           </span>
           <button id="btn-logout" class="bg-sfl-accent text-white font-bold px-3 py-1 rounded text-xs hover:bg-red-700 transition">Sign Out</button>
         </div>
+
+        <!-- DONATION BUTTON (TOP RIGHT) -->
+        <button id="donate-btn" class="bg-amber-500 hover:bg-amber-600 text-amber-950 font-bold px-3 py-1.5 rounded-lg text-xs border border-amber-300 shadow-sm transition flex items-center gap-1.5 whitespace-nowrap cursor-pointer">
+          <span>☕</span> Donate crypto
+        </button>
       </div>
 
       <!-- TAB NAVIGATION BUTTONS -->
