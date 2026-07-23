@@ -6,7 +6,7 @@ let editingSnapshotDate = null;
 function normalizeItemKey(rawName) {
   if (!rawName) return '';
   return rawName
-    .replace(/^\[.*?\]\s*/, '') // Remove category prefixes like [Crop]
+    .replace(/^\[.*?\]\s*/, '')
     .toLowerCase()
     .trim();
 }
@@ -95,7 +95,6 @@ async function updatePreHarvestUI() {
 document.getElementById('save-pre-harvest-btn')?.addEventListener('click', async () => {
   let baselineStock = {};
   
-  // Prioritize Farm Basket if populated, otherwise use synced farm inventory
   if (typeof basket !== 'undefined' && basket.length > 0) {
     basket.forEach(entry => {
       let cleanName = normalizeItemKey(entry.item);
@@ -168,7 +167,6 @@ document.getElementById('log-yield-btn')?.addEventListener('click', async () => 
   const taxRate = parseFloat(document.getElementById('tax-select')?.value) || 0;
   let postHarvestStock = {};
 
-  // Build current post-harvest stock state
   if (typeof basket !== 'undefined' && basket.length > 0) {
     basket.forEach(entry => {
       let cleanName = normalizeItemKey(entry.item);
@@ -199,7 +197,6 @@ document.getElementById('log-yield-btn')?.addEventListener('click', async () => 
     let endQty = parseFloat(postHarvestStock[itemName]) || 0;
     let diff = endQty - startQty;
 
-    // Detect positive yield increase
     if (diff > 0.0001) {
       let harvestedQty = roundUpToOneDecimal(diff);
       let matchedKey = (typeof allPrices !== 'undefined' && allPrices) 
@@ -235,8 +232,6 @@ document.getElementById('log-yield-btn')?.addEventListener('click', async () => 
     grandCount += newYieldsMap[itemName].qty;
     grandFlowers += newYieldsMap[itemName].flowers;
   });
-
-  const flowerIconSymbol = typeof FLOWER_ICON !== 'undefined' ? FLOWER_ICON : '🌸';
 
   const updatedDailyEntry = {
     date: todayDate,
@@ -357,6 +352,31 @@ async function deleteSnapshotRow(date) {
   renderSnapshotHistory();
 }
 
+async function loadCloudYieldHistory() {
+  if (typeof currentUser !== 'undefined' && currentUser && typeof supabaseClient !== 'undefined' && supabaseClient) {
+    try {
+      const { data, error } = await supabaseClient
+        .from('daily_yields')
+        .select('*')
+        .eq('user_id', currentUser.id)
+        .order('yield_date', { ascending: false });
+
+      if (!error && Array.isArray(data) && data.length > 0) {
+        const cloudHistory = data.map(item => ({
+          date: item.yield_date,
+          totalCount: parseFloat(item.total_count || 0),
+          crops: item.crops || [],
+          netFlowers: parseFloat(item.net_flowers || 0).toFixed(3)
+        }));
+        localStorage.setItem('sfl_daily_snapshots', JSON.stringify(cloudHistory));
+        renderSnapshotHistory();
+      }
+    } catch (err) {
+      console.warn("Cloud yield fetch skipped:", err.message);
+    }
+  }
+}
+
 function renderSnapshotHistory() {
   const tbody = document.getElementById('snapshot-history-body');
   if (!tbody) return;
@@ -378,19 +398,22 @@ function renderSnapshotHistory() {
     if (Array.isArray(entry.crops)) {
       cropBadges = entry.crops
         .map((crop, idx) => {
+          const cropQty = parseFloat(crop.qty) || 0;
+          const cropFlowers = parseFloat(crop.flowers) || 0;
+
           if (isEditing) {
             return `
               <span class="inline-flex items-center gap-1 bg-amber-200 text-amber-900 border-2 border-sfl-green text-[11px] font-bold px-2 py-0.5 rounded shadow-sm mr-1 mb-1">
                 <span>${crop.name}:</span>
-                <input type="number" id="edit-qty-${cleanDateId}-${idx}" value="${crop.qty.toFixed(1)}" step="0.1" min="0" 
+                <input type="number" id="edit-qty-${cleanDateId}-${idx}" value="${cropQty.toFixed(1)}" step="0.1" min="0" 
                   class="w-12 sfl-input text-xs font-mono font-bold rounded px-1 text-sfl-dirt text-center">
               </span>
             `;
           } else {
             return `
               <span class="inline-flex items-center gap-1 bg-green-100 text-sfl-green border border-sfl-green/40 text-[11px] font-bold px-2 py-0.5 rounded shadow-sm mr-1 mb-1">
-                <span>+${crop.qty.toFixed(1)} ${crop.name}</span>
-                <span class="text-sfl-green font-normal">(${crop.flowers.toFixed(3)} ${flowerIconSymbol})</span>
+                <span>+${cropQty.toFixed(1)} ${crop.name}</span>
+                <span class="text-sfl-green font-normal">(${cropFlowers.toFixed(3)} ${flowerIconSymbol})</span>
               </span>
             `;
           }
@@ -408,7 +431,13 @@ function renderSnapshotHistory() {
         <button onclick="deleteSnapshotRow('${entry.date}')" class="bg-sfl-accent text-white px-2 py-1 rounded text-[10px] font-bold hover:bg-red-700 shadow-sm cursor-pointer">🗑️</button>
       `;
 
-    let totalYieldCount = entry.totalCount || (Array.isArray(entry.crops) ? entry.crops.reduce((acc, c) => acc + c.qty, 0) : 0);
+    // Safe numerical conversion preventing crash on old snapshots
+    let rawTotalCount = parseFloat(entry.totalCount);
+    let totalYieldCount = !isNaN(rawTotalCount) 
+      ? rawTotalCount 
+      : (Array.isArray(entry.crops) ? entry.crops.reduce((acc, c) => acc + (parseFloat(c.qty) || 0), 0) : 0);
+
+    let netFlowersVal = parseFloat(entry.netFlowers) || 0;
 
     let tr = document.createElement('tr');
     tr.className = isEditing ? "bg-amber-100/70 transition" : "hover:bg-amber-50/50 transition";
@@ -416,7 +445,7 @@ function renderSnapshotHistory() {
       <td class="px-3 py-2.5 font-bold whitespace-nowrap">${entry.date}</td>
       <td class="px-3 py-2.5 font-bold font-mono text-sfl-wood">${totalYieldCount.toFixed(1)} Items</td>
       <td class="px-3 py-2.5">${cropBadges}</td>
-      <td class="px-3 py-2.5 font-bold text-sfl-green font-mono">${entry.netFlowers} ${flowerIconSymbol}</td>
+      <td class="px-3 py-2.5 font-bold text-sfl-green font-mono">${netFlowersVal.toFixed(3)} ${flowerIconSymbol}</td>
       <td class="px-2 py-2.5 text-center whitespace-nowrap">${actionButtons}</td>
     `;
     tbody.appendChild(tr);
@@ -464,4 +493,5 @@ if (importFileInput) {
 document.addEventListener('DOMContentLoaded', () => {
   updatePreHarvestUI();
   renderSnapshotHistory();
+  loadCloudYieldHistory();
 });
