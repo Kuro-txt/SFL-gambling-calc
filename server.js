@@ -9,14 +9,14 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-// Initialize Supabase Admin Client using service_role key to bypass RLS for cron jobs
+// Initialize Supabase Admin Client using service_role key
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const supabaseAdmin = (supabaseUrl && supabaseServiceKey) 
   ? createClient(supabaseUrl, supabaseServiceKey) 
   : null;
 
-// Keywords to filter out seeds, tools, and non-sellable consumables
+// Excluded item filter
 const EXCLUDED_KEYWORDS = [
   'seed', 'axe', 'pickaxe', 'rod', 'shovel', 'drill', 
   'worm', 'wiggler', 'grub', 'fertilizer', 'mix', 
@@ -29,7 +29,6 @@ function isExcludedItem(itemName) {
   return EXCLUDED_KEYWORDS.some(kw => lower.includes(kw));
 }
 
-// Helper function to pause execution between requests to prevent HTTP 429 Rate Limits
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // Health Check
@@ -47,7 +46,7 @@ app.get('/api/get-farm', async (req, res) => {
 
   try {
     const headers = {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
       'Accept': 'application/json'
     };
 
@@ -70,7 +69,7 @@ app.get('/api/get-farm', async (req, res) => {
 
     if (err.response?.status === 429) {
       return res.status(429).json({ 
-        error: '⚠️ Server API rate limit reached! Please wait a few minutes, or paste your own personal SFL API Key above to sync immediately.' 
+        error: '⚠️ Server API rate limit reached! Please wait a few minutes, or paste your personal SFL API Key.' 
       });
     }
 
@@ -107,10 +106,7 @@ app.get('/api/get-data', async (req, res) => {
 
   try {
     const response = await axios.get('https://sfl.world/api/v1/prices', {
-      headers: { 
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36', 
-        'Accept': 'application/json' 
-      },
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)', 'Accept': 'application/json' },
       timeout: 8000
     });
 
@@ -133,7 +129,7 @@ app.get('/api/get-data', async (req, res) => {
   return res.json(fallbackCatalog);
 });
 
-// Proxy Endpoint 3: Live NFT Catalog & Boost Info from sfl.world
+// Proxy Endpoint 3: Fetches Live NFT Catalog & Boost Info from sfl.world
 app.get('/api/nfts', async (req, res) => {
   try {
     const response = await axios.get('https://sfl.world/api/v1/nfts', {
@@ -154,7 +150,6 @@ app.get('/api/nfts', async (req, res) => {
       itemsArray = rawData.data || rawData.nfts || rawData.items || Object.values(rawData);
     }
 
-    // Standardize structure: name, price (floor), boost (boost_text)
     const cleanedList = itemsArray.map(item => {
       if (!item || typeof item !== 'object') return null;
 
@@ -169,7 +164,7 @@ app.get('/api/nfts', async (req, res) => {
         price: price,
         boost: String(boost).trim()
       };
-    }).filter(item => item !== null && item.name !== 'Unknown NFT');
+    }).filter(item => item !== null);
 
     return res.json(cleanedList);
   } catch (err) {
@@ -180,10 +175,10 @@ app.get('/api/nfts', async (req, res) => {
   }
 });
 
-// CRON ENDPOINT: Triggered at 00:00 UTC to save Pre-Harvest Baseline for all registered users
+// CRON ENDPOINT: Daily Snapshot Trigger
 app.get('/api/trigger-daily-baseline', async (req, res) => {
   if (!supabaseAdmin) {
-    return res.status(500).json({ error: 'Supabase admin client not initialized on server. Check SUPABASE_SERVICE_ROLE_KEY environment variable.' });
+    return res.status(500).json({ error: 'Supabase admin client not initialized on server.' });
   }
 
   try {
@@ -205,10 +200,7 @@ app.get('/api/trigger-daily-baseline', async (req, res) => {
       try {
         if (!profile.farm_id) continue;
 
-        const headers = { 
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36', 
-          'Accept': 'application/json' 
-        };
+        const headers = { 'User-Agent': 'Mozilla/5.0', 'Accept': 'application/json' };
         if (process.env.SFL_API_KEY) {
           headers['x-api-key'] = process.env.SFL_API_KEY;
           headers['Authorization'] = `Bearer ${process.env.SFL_API_KEY}`;
@@ -238,8 +230,6 @@ app.get('/api/trigger-daily-baseline', async (req, res) => {
             }
           }
         }
-
-        console.log(`[SNAPSHOT DEBUG] Farm #${profile.farm_id} extracted ${Object.keys(cleanBaseline).length} items.`);
 
         const { error: insertErr } = await supabaseAdmin
           .from('preharvest_baselines')
