@@ -66,6 +66,13 @@ function loadPrices() {
   fetch(`${backend}/api/get-data`)
     .then(res => res.json())
     .then(rawData => {
+      if (rawData && typeof rawData === 'object') {
+        delete rawData.updated_text;
+        delete rawData.updatedText;
+        delete rawData.updated_at;
+        delete rawData.updatedAt;
+        delete rawData.updatedat;
+      }
       allPrices = extractPrices(rawData);
     })
     .catch(() => console.warn("Using default fallback prices."));
@@ -78,9 +85,12 @@ function extractPrices(data) {
   function searchObj(obj, prefix = '') {
     for (let key in obj) {
       if (!Object.prototype.hasOwnProperty.call(obj, key)) continue;
-      let val = obj[key];
       
+      let lowerKey = key.toLowerCase().trim();
+      if (lowerKey.includes('updated') || lowerKey.includes('created') || lowerKey === 'id') continue;
       if (typeof isExcludedItem === 'function' && isExcludedItem(key)) continue;
+
+      let val = obj[key];
 
       if (typeof val === 'number') {
         pricesMap[prefix + key] = val;
@@ -189,9 +199,15 @@ if (input && menu) {
 
     const matches = Object.keys(allPrices)
       .filter(key => {
+        let lowerKey = key.toLowerCase().trim();
+        let displayName = key.replace(/^\[.*?\]\s*/, '').toLowerCase().trim();
+        
+        // Strict blocking for any metadata fields containing 'updated' or 'created'
+        if (lowerKey.includes('updated') || displayName.includes('updated')) return false;
+        if (lowerKey.includes('created') || displayName.includes('created')) return false;
         if (typeof isExcludedItem === 'function' && isExcludedItem(key)) return false;
-        let cleanKey = key.replace(/^\[.*?\]\s*/, '');
-        return cleanKey.toLowerCase().includes(query) || key.toLowerCase().includes(query);
+
+        return displayName.includes(query) || lowerKey.includes(query);
       })
       .sort((a, b) => a.replace(/^\[.*?\]\s*/, '').localeCompare(b.replace(/^\[.*?\]\s*/, '')));
 
@@ -430,11 +446,11 @@ document.getElementById('donate-btn')?.addEventListener('click', async () => {
     // Visual text feedback
     const originalText = donateBtn.textContent;
     donateBtn.textContent = "Copied!";
-    donateBtn.classList.add('text-green-600');
+    donateBtn.classList.add('text-green-400');
 
     setTimeout(() => {
       donateBtn.textContent = originalText;
-      donateBtn.classList.remove('text-green-600');
+      donateBtn.classList.remove('text-green-400');
     }, 2000);
 
   } catch (err) {
