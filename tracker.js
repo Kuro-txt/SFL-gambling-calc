@@ -73,11 +73,10 @@ async function updatePreHarvestUI() {
   }
 }
 
-// 1. SAVE PRE-HARVEST BASELINE (PRESERVES EXISTING ITEMS)
-document.getElementById('save-pre-harvest-btn').addEventListener('click', async () => {
+// 1. SAVE PRE-HARVEST BASELINE
+document.getElementById('save-pre-harvest-btn')?.addEventListener('click', async () => {
   let baselineStock = {};
 
-  // Step A: Load previously saved baseline items from localStorage first
   const existingRaw = localStorage.getItem('sfl_pre_harvest_stock');
   if (existingRaw) {
     try {
@@ -87,7 +86,7 @@ document.getElementById('save-pre-harvest-btn').addEventListener('click', async 
         let cleanK = k.toLowerCase().trim();
         let val = typeof rawStock[k] === 'number' ? rawStock[k] : parseFloat(rawStock[k]?.amount || rawStock[k] || 0);
         if (val > 0) {
-          baselineStock[cleanK] = val; // Keep previously saved items!
+          baselineStock[cleanK] = val;
         }
       }
     } catch (e) {
@@ -95,17 +94,14 @@ document.getElementById('save-pre-harvest-btn').addEventListener('click', async 
     }
   }
   
-  // Step B: Merge items from Farm Basket
   if (typeof basket !== 'undefined' && basket.length > 0) {
     basket.forEach(entry => {
       let cleanName = entry.item.replace(/^\[.*?\]\s*/, '').toLowerCase().trim();
       if (typeof isSnapshotEligible === 'undefined' || isSnapshotEligible(cleanName)) {
-        baselineStock[cleanName] = entry.qty; // Update or set quantity
+        baselineStock[cleanName] = entry.qty;
       }
     });
-  } 
-  // Step C: Fallback to Synced Farm Inventory if Basket is empty
-  else if (typeof farmInventoryData !== 'undefined' && Object.keys(farmInventoryData).length > 0) {
+  } else if (typeof farmInventoryData !== 'undefined' && Object.keys(farmInventoryData).length > 0) {
     for (let key in farmInventoryData) {
       let cleanName = key.toLowerCase().replace(/[^a-z0-9]/g, '');
       if (typeof isSnapshotEligible === 'undefined' || isSnapshotEligible(cleanName)) {
@@ -132,13 +128,13 @@ document.getElementById('save-pre-harvest-btn').addEventListener('click', async 
   alert("🚩 Manual Pre-Harvest baseline saved! Harvest/gather in-game, then click '2. Calculate Harvest Yield'.");
 });
 
-document.getElementById('clear-pre-harvest-btn').addEventListener('click', () => {
+document.getElementById('clear-pre-harvest-btn')?.addEventListener('click', () => {
   localStorage.removeItem('sfl_pre_harvest_stock');
   updatePreHarvestUI();
 });
 
-// 2. CALCULATE HARVEST YIELD (NO LONGER REMOVES BASELINE)
-document.getElementById('log-yield-btn').addEventListener('click', async () => {
+// 2. CALCULATE HARVEST YIELD
+document.getElementById('log-yield-btn')?.addEventListener('click', async () => {
   let preHarvestData = null;
   const todayDate = new Date().toISOString().split('T')[0];
 
@@ -170,7 +166,6 @@ document.getElementById('log-yield-btn').addEventListener('click', async () => {
   const taxRate = parseFloat(document.getElementById('tax-select')?.value) || 0;
   let postHarvestStock = {};
 
-  // Preserve pre-harvest stock floor
   for (let key in preHarvestData) {
     postHarvestStock[key] = parseFloat(preHarvestData[key]) || 0;
   }
@@ -261,9 +256,6 @@ document.getElementById('log-yield-btn').addEventListener('click', async () => {
   }
 
   localStorage.setItem('sfl_daily_snapshots', JSON.stringify(history));
-  
-  // REMOVED: localStorage.removeItem('sfl_pre_harvest_stock');
-  // Baseline remains active in localStorage so future saves accumulate properly.
 
   updatePreHarvestUI();
   renderSnapshotHistory();
@@ -365,7 +357,7 @@ function renderSnapshotHistory() {
   let history = JSON.parse(localStorage.getItem('sfl_daily_snapshots') || '[]');
 
   if (history.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="4" class="px-4 py-6 text-center text-sfl-woodLight italic">No harvest sessions logged yet!</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="5" class="px-4 py-6 text-center text-sfl-woodLight italic">No harvest sessions logged yet!</td></tr>`;
     return;
   }
 
@@ -376,9 +368,10 @@ function renderSnapshotHistory() {
     let cleanDateId = entry.date.replace(/[^a-zA-Z0-9]/g, '');
 
     const flowerSymbol = typeof FLOWER_ICON !== 'undefined' ? FLOWER_ICON : '🌸';
+    let cropsList = Array.isArray(entry.crops) ? entry.crops : [];
 
-    if (Array.isArray(entry.crops)) {
-      cropBadges = entry.crops
+    if (cropsList.length > 0) {
+      cropBadges = cropsList
         .map((crop, idx) => {
           if (isEditing) {
             return `
@@ -410,12 +403,21 @@ function renderSnapshotHistory() {
         <button onclick="deleteSnapshotRow('${entry.date}')" class="bg-sfl-accent text-white px-2 py-1 rounded text-[10px] font-bold hover:bg-red-700 shadow-sm">🗑️</button>
       `;
 
+    // Safely calculate Total Daily Yield count
+    let rawTotalCount = parseFloat(entry.totalCount || entry.total_count);
+    let totalYieldCount = !isNaN(rawTotalCount) 
+      ? rawTotalCount 
+      : cropsList.reduce((acc, c) => acc + (parseFloat(c.qty) || 0), 0);
+
+    let rawNetFlowers = parseFloat(entry.netFlowers || entry.net_flowers || 0);
+
     let tr = document.createElement('tr');
     tr.className = isEditing ? "bg-amber-100/70 transition" : "hover:bg-amber-50/50 transition";
     tr.innerHTML = `
       <td class="px-3 py-2.5 font-bold whitespace-nowrap">${entry.date}</td>
-      <td class="px-3 py-2.5">${cropBadges}</td>
-      <td class="px-3 py-2.5 font-bold text-sfl-green">${entry.netFlowers} ${flowerSymbol}</td>
+      <td class="px-3 py-2.5 font-bold font-mono text-sfl-wood">${totalYieldCount.toFixed(1)} Items</td>
+      <td class="px-3 py-2.5">${cropBadges || '<span class="italic text-gray-400">No details</span>'}</td>
+      <td class="px-3 py-2.5 font-bold text-sfl-green font-mono">${rawNetFlowers.toFixed(3)} ${flowerSymbol}</td>
       <td class="px-2 py-2.5 text-center whitespace-nowrap">${actionButtons}</td>
     `;
     tbody.appendChild(tr);
